@@ -123,7 +123,8 @@ pub fn run() {
             commands::ytdlp::update_ytdlp,
             commands::search::search_metadata,
             commands::search::search_local,
-            commands::cover::fetch_cover
+            commands::cover::fetch_cover,
+            commands::enrich::enrich_tracks
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

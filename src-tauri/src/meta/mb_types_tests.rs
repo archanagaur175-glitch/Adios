@@ -3,7 +3,7 @@
 //! recording, release — verified 2026-10-15).
 
 use crate::meta::mb_parse::parse_list;
-use crate::meta::mb_types::{MbArtist, MbRecording, MbRelease, SearchKind};
+use crate::meta::mb_types::{credit_names, MbArtist, MbRecording, MbRelease, SearchKind};
 
 const ARTIST_JSON: &str = r#"{
   "created": "2017-03-12T16:54:57.165Z",
@@ -107,7 +107,10 @@ fn release_list_parses_doc_shape() {
     let page = parse_list::<MbRelease>(SearchKind::Release.list_key(), RELEASE_JSON).unwrap();
     let rel = &page.items[0];
     assert_eq!(rel.title, "Fred Schneider & The Shake Society");
-    assert_eq!(rel.artists(), vec!["Fred Schneider".to_owned()]);
+    assert_eq!(
+        credit_names(&rel.artist_credit),
+        vec!["Fred Schneider".to_owned()]
+    );
     assert_eq!(rel.date.as_deref(), Some("1987"));
     assert_eq!(rel.status.as_deref(), Some("Official"));
     assert_eq!(rel.score, Some(100));

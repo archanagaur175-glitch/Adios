@@ -1,6 +1,7 @@
 pub mod fts;
 pub mod migrations;
 pub mod queries;
+pub mod track_mb;
 
 #[cfg(test)]
 mod fts_tests;

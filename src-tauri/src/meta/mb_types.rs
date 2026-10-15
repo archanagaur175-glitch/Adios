@@ -133,7 +133,6 @@ pub struct MbArtistRef {
 }
 
 /// Flat artist-name list from a credit array (UI + enrichment matching).
-#[allow(dead_code)] // consumed by the search UI (5.3) + import enrichment (5.4)
 pub fn credit_names(credit: &Option<Vec<MbCredit>>) -> Vec<String> {
     credit
         .iter()
@@ -156,10 +155,25 @@ pub struct MbRecording {
     pub artist_credit: Option<Vec<MbCredit>>,
     #[serde(default, alias = "first-release-date")]
     pub first_release_date: Option<String>,
+    /// Albums this recording appears on — enrichment picks one for CAA art.
+    /// Live shape sampled from the `mb_recording` payload in meta_cache
+    /// (2026-10-15): `{id, status, title, date, artist-credit, release-group…}`.
+    #[serde(default)]
+    pub releases: Option<Vec<MbReleaseRef>>,
+}
+
+/// Minimal release stub carried on a recording search hit (P5.4).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MbReleaseRef {
+    pub id: String,
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(default)]
+    pub date: Option<String>,
 }
 
 impl MbRecording {
-    #[allow(dead_code)] // search UI (5.3) + enrichment matching (5.4)
     pub fn artists(&self) -> Vec<String> {
         credit_names(&self.artist_credit)
     }
@@ -180,9 +194,3 @@ pub struct MbRelease {
     pub status: Option<String>,
 }
 
-impl MbRelease {
-    #[allow(dead_code)] // search UI (5.3) + enrichment matching (5.4)
-    pub fn artists(&self) -> Vec<String> {
-        credit_names(&self.artist_credit)
-    }
-}
