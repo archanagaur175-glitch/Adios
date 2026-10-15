@@ -5,6 +5,7 @@ import { Titlebar } from "@/components/titlebar/Titlebar";
 import { Sidebar } from "@/components/sidebar/Sidebar";
 import { PlayerBar } from "@/components/player/PlayerBar";
 import { SearchOverlay } from "@/components/search/SearchOverlay";
+import { Aurora } from "@/visuals/aurora";
 import "./appshell.css";
 
 export function AppShell() {
@@ -13,6 +14,7 @@ export function AppShell() {
 
   return (
     <div className="app-surface">
+      <Aurora />
       <Titlebar />
       <div className="shell">
         <Sidebar

@@ -24,10 +24,12 @@ body {
 }
 
 /* App root surface — translucent tint over the system backdrop.
-   Full treatment (aurora L0) arrives in P6; keep alpha < 1 so Mica shows. */
+   isolation: contain the P6 aurora (z: -1 paints above this tint,
+   below content) and keep Mica visible through the alpha. */
 .app-surface {
   height: 100%;
   background: rgba(7, 8, 12, 0.62);
+  isolation: isolate;
 }
 
 .app-content {

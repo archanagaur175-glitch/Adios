@@ -1,0 +1,135 @@
+/* P6.2 Aurora backdrop (DESIGN L0): pre-blurred radial blobs from the
+   album palette + static film grain. No `filter`/`backdrop-filter` here —
+   softness is baked into the gradients (budget stays at 3 decls).
+   Palette tween: @property registers the palette colors so CSS can
+   TRANSITION custom properties (chosen over a JS lerp — zero per-frame JS;
+   WebView2 = Chromium, @property supported). */
+
+@property --palette-accent {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #7c5cff;
+}
+@property --palette-accent2 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #5546c8;
+}
+@property --palette-1 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #2b2456;
+}
+@property --palette-2 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #191430;
+}
+@property --palette-3 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #100c22;
+}
+
+/* Transitions live on the element palette.ts writes to (documentElement).
+   Band vars are unregistered → they keep flipping per frame, unanimated. */
+:root {
+  transition:
+    --palette-accent 800ms ease,
+    --palette-accent2 800ms ease,
+    --palette-1 800ms ease,
+    --palette-2 800ms ease,
+    --palette-3 800ms ease;
+}
+
+.aurora {
+  position: absolute;
+  inset: 0;
+  z-index: -1; /* above .app-surface tint (isolation in base.css), below content */
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.aurora__blob {
+  position: absolute;
+  width: 58vmax;
+  height: 58vmax;
+  border-radius: 50%;
+  /* Scale nudged by the P6.1 band vars (transform on the OUTER layer so the
+     drift keyframes below — on the inner layer — never override it). */
+  transform: scale(calc(1 + var(--band-bass, 0) * 0.26));
+}
+
+/* Inner plate carries the pre-blurred gradient + slow drift. */
+.aurora__drift {
+  position: absolute;
+  inset: -14%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 50%,
+    var(--c) 0%,
+    color-mix(in srgb, var(--c) 55%, transparent) 34%,
+    transparent 70%
+  );
+  opacity: calc(0.4 + var(--band-mid, 0) * 0.35);
+  animation: aurora-drift 34s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.aurora__blob--1 {
+  --c: var(--palette-accent);
+  top: -20%;
+  left: -14%;
+}
+.aurora__blob--2 {
+  --c: var(--palette-accent2);
+  top: 30%;
+  right: -22%;
+  transform: scale(calc(1 + var(--band-mid, 0) * 0.2));
+  animation-duration: 46s;
+}
+.aurora__blob--3 {
+  --c: var(--palette-1);
+  bottom: -26%;
+  left: 26%;
+  transform: scale(calc(1 + var(--band-high, 0) * 0.16));
+}
+.aurora__blob--2 .aurora__drift {
+  animation-duration: 41s;
+  animation-delay: -13s;
+}
+.aurora__blob--3 .aurora__drift {
+  animation-duration: 53s;
+  animation-delay: -21s;
+}
+
+@keyframes aurora-drift {
+  from {
+    transform: translate3d(-5%, -4%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(6%, 5%, 0) scale(1.06);
+  }
+}
+
+/* Paused/hidden/disposed (bridge vars already zeroed) = one static frame. */
+.aurora:not(.aurora--on) .aurora__drift {
+  animation-play-state: paused;
+}
+
+/* Static film grain (DESIGN: 4–6% opacity, no live effects). */
+.aurora__grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora__drift {
+    animation: none;
+  }
+  .aurora__blob {
+    transform: scale(1);
+  }
+}

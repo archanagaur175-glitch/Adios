@@ -3,6 +3,7 @@ import { inTauri } from "@/lib/api";
 import { formatDuration } from "@/lib/format";
 import { useLibraryStore } from "@/store/libraryStore";
 import { usePlayerStore } from "@/store/playerStore";
+import { CrossFadeArt } from "./CrossFadeArt";
 import { IconMute, IconNext, IconPause, IconPlay, IconPrev, IconVolume } from "./icons";
 import "./playerbar.css";
 
@@ -28,7 +29,7 @@ export function PlayerBar() {
     <footer className="player-bar" aria-label="Player">
       <div className="player-bar__info">
         <div className="player-bar__cover" aria-hidden="true">
-          {cover ? <img src={cover} alt="" /> : <span>♪</span>}
+          <CrossFadeArt src={cover} />
         </div>
         <div className="player-bar__text">
           <p className="player-bar__title">{track?.title ?? "Nothing playing"}</p>
