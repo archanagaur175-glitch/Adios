@@ -1,5 +1,6 @@
 mod commands;
 mod db;
+mod resolver;
 mod scan;
 mod server;
 mod win;
@@ -20,8 +21,20 @@ pub fn run() {
 
             let data_dir = app.path().app_data_dir().expect("app data dir");
             let conn = db::open(&data_dir.join("adios.db")).expect("open database");
-            app.manage(db::DbState::new(conn));
+            let db_state = db::DbState::new(conn);
+            let shared_db = db_state.shared();
+            app.manage(db_state);
             println!("[db] opened at {}", data_dir.join("adios.db").display());
+
+            // Resolver chain (Invariant 2): LocalFile → Cache → (yt-dlp, piped in P4.2/4.4).
+            let chain = std::sync::Arc::new(resolver::ResolverChain::new(vec![
+                std::sync::Arc::new(resolver::local::LocalFileResolver::new(shared_db.clone())),
+                std::sync::Arc::new(resolver::cache::CacheResolver::new(
+                    shared_db,
+                    data_dir.join("cache"),
+                )),
+            ]));
+            app.manage(chain);
 
             let loopback = server::start().expect("loopback server");
             println!("[server] listening on {}", loopback.base_url());

@@ -5,14 +5,20 @@ pub mod queries;
 mod tests;
 
 use rusqlite::{Connection, Result};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
-/// Managed Tauri state holding the app database connection.
-pub struct DbState(pub Mutex<Connection>);
+/// Managed Tauri state holding the app database connection (shared with the
+/// DB-backed resolvers, which need the same handle at resolve time).
+pub struct DbState(pub Arc<Mutex<Connection>>);
 
 impl DbState {
     pub fn new(conn: Connection) -> Self {
-        Self(Mutex::new(conn))
+        Self(Arc::new(Mutex::new(conn)))
+    }
+
+    /// Cloneable handle for constructing resolvers at setup.
+    pub fn shared(&self) -> Arc<Mutex<Connection>> {
+        Arc::clone(&self.0)
     }
 }
 

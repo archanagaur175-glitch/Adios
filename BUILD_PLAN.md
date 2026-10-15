@@ -1,6 +1,6 @@
 # Adios — Build Plan
 
-STATUS: APPROVED (2026-10-15) · P4 · Step 4.1 · PENDING
+STATUS: APPROVED (2026-10-15) · P4 · Step 4.2 · PENDING
 
 ## DECISIONS
 - **D1 MSVC Build Tools**: missing (verified: no cl.exe). Install REQUIRED in P0.1 after approval: `winget install Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"` (UAC + large download; reopen terminal after). If install fails: STOP and ask. No GNU-toolchain workaround.
@@ -76,7 +76,7 @@ STATUS: APPROVED (2026-10-15) · P4 · Step 4.1 · PENDING
 - **Deps**: P3 (server, playback).
 - **Risks**: yt-dlp YouTube challenges (EJS/JS runtime, PO-token); URL expiry; remote streaming through axum; public instance flakiness.
 - **Gate**: manual "artist - title" query → plays via loopback with analyser data; Range on remote → 206; network kill mid-stream → exactly ONE logged re-resolve; scoring tests pass; spike findings recorded in VERIFICATION LOG.
-- [ ] **4.1 Resolver trait + LocalFile + Cache resolvers + health() + candidate scoring** — scoring: duration ±3 s hard bound, token-set title similarity, official-audio/topic hints, reject live/cover/remix. Unit tests: scoring cases (match, duration reject, live reject, hint boost). Verify: `cargo test`.
+- [x] **4.1 Resolver trait + LocalFile + Cache resolvers + health() + candidate scoring** — object-safe `Resolver` trait (BoxFuture), `ResolverChain` (first hit wins, misses logged), `Query`/`Candidate`/`Health` types; LocalFile scores library rows via the shared scorer (best ≥ 0.5 conf, mime from extension); Cache serves `meta_cache(kind=resolution)` + `cache_index` + on-disk file (FNV-1a query key, duration in whole seconds); chain managed in setup (SharedDb = `Arc<Mutex<Connection>>` behind `DbState::shared()`). Scoring: duration ±3 s hard bound, token-set title overlap, official-audio +0.05 / topic +0.08 boosts, live/cover/remix reject unless the query itself contains the word. Tests: 9 scoring cases (match/duration/live/cover/remix/hints/mismatch/noisy title) + LocalFile + Cache (hit, key-miss, missing-file) + chain (local-first, health order, empty → NotFound). Verify: `cargo test` 34 passed.
 - [ ] **4.2 yt-dlp sidecar: resolve command + stream URL extraction (m4a/webm prefer) + spike findings** — run yt-dlp `-J` and format extraction against a real YouTube query; record: EJS/JS-runtime needed? PO-token needed? Node 22 present. If spike fails → STOP per Rule 2.4, propose PO-token plan. Verify: `cargo test` (sidecar arg construction) + manual resolve log.
 - [ ] **4.3 Proxy remote streaming + disk cache writer + cache_index** — remote URL → reqwest stream → client + disk (temp→rename); Range forwarded. Verify: `cargo test` (cache_index bookkeeping); manual: play remote track, `curl -H "Range: bytes=0-1" http://127.0.0.1:<port>/media/<token>` → 206.
 - [ ] **4.4 Re-resolve once on 403/expiry + Piped/Invidious fallback (empty list, Test instance) + "Update yt-dlp" action** — Verify: `cargo test` (expiry triggers single re-resolve — mock); manual: kill network mid-stream → exactly one logged re-resolve; update action downloads/runs.
@@ -191,9 +191,12 @@ P10 (optional, NOT planned): 3D layer behind existing VisualizerHost interface.
 | 2026-10-15 | dev smoke `VITE_ADIOS_SMOKE=1 VITE_ADIOS_XFADE_TEST=1` cold boot (dev14) | `rms=0.0149 isPlaying=true position=2.38s` · `seek(5)→5.54s` · `next 1→3 isPlaying=true` · `prev 3→1` · **synthetic `media-key next`: 1→2** · xfade samples: gains 1.000/0.000 → 0.946/0.324 → 0.795/0.607 → 0.568/0.823 → 0.286/0.958 → 0.000/1.000, swap `1→3`, id3 position keeps advancing (2.39→3.99), `isPlaying=true`, final gains 1.00/0.00 — equal-power curve + swap + advance verified |
 | 2026-10-15 | real OS media-key test: SendInput `VK_MEDIA_NEXT_TRACK` (0xB6, KEYEVENTF_EXTENDEDKEY) against live unfocused app | track advanced id3 → id2 ("back to friends", 0:03/4:21 playing) via RegisterHotKey → `media-key` event → FE handler — **global media keys PASS** (note: keybd_event without extended flag is ignored by the shell) |
 | 2026-10-15 | D3 listening-test result | crossfade objective metrics all green (curve, swap, no gap, queue advance); **default kept 0 ms (OFF)** — gapless local listening preferred; user can enable 1–8 s in settings later — **P3.4 PASS** |
+| 2026-10-15 | `cargo test` (P4.1) | **34 passed, 0 failed, 0 warnings** — 20 prior + 14 new: 9 score (exact ≥0.99, duration 15 s reject, duration +2 s accept, live reject & query-live allow, cover, remix, official-audio boost, topic boost, no-overlap reject, noisy lyric-video title accept) + LocalFile (hit/mime/miss/health Ok) + Cache (seeded hit conf 1.0, different-duration key miss, missing-disk-file miss) + chain (local-first over cache, health order, empty chain → NotFound) |
+| 2026-10-15 | file audit + tsc/lint (P4.1) | resolver mod 154, score 138, local 98, cache 121, tests 176, chain_tests 146 — all ≤200; `npx tsc --noEmit` + `npm run lint` clean (no FE changes) |
+| 2026-10-15 | dev boot smoke (P4.1 wiring) | `[db] opened` · `[server] listening` · `[media-keys] 4 registered` · harness `rms=0.0168 isPlaying=true`, seek/next fine — resolver chain constructed in setup without panic, playback unaffected — **P4.1 PASS** |
 
 ## OPEN QUESTIONS
 1. None blocking. (D1–D4 decided by user; spike findings in P4.2 may raise a PO-token question — handled by STOP rule.)
 
 ## NEXT ACTION
-Run P4.1: Resolver trait + LocalFile + Cache resolvers + health() + candidate scoring (duration ±3 s hard bound, token-set title similarity, official-audio/topic hints, reject live/cover/remix). Unit tests: scoring cases. Verify: `cargo test`.
+Run P4.2: yt-dlp sidecar — resolve command + stream URL extraction (prefer m4a/webm audio-only via `-f bestaudio[ext=m4a]/bestaudio`) + spike findings against a real YouTube query (record: EJS/JS-runtime needed? PO-token needed? Node 22 present). If spike fails → STOP per Rule 2.4, propose PO-token plan. Verify: `cargo test` (sidecar arg construction) + manual resolve log.
