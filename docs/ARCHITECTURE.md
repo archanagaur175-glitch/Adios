@@ -28,7 +28,7 @@ Tagline: "Say goodbye to ads and subscription paywalls." Single machine, never p
 │  • window-vibrancy (Mica/Acrylic), media keys, single-instance,      │
 │    tracing logs, NSIS installer                                      │
 └──────────────────────────────────────────────────────────────────────┘
-Storage: %APPDATA%\Adios (adios.db, cache\, covers\, logs\)
+Storage: `%APPDATA%\com.nullbrain.adios` (Tauri app_data_dir = identifier-based; contains adios.db + WAL, cache\, covers\, logs\)
 ```
 
 **Invariant 1 — all audio via the loopback server.** Audio bytes NEVER pass through Tauri `invoke`, and the Tauri asset protocol is NOT used for audio. Every playable item (local file or remote URL) is served by ONE Rust axum server bound to `127.0.0.1` on an ephemeral port:
@@ -114,7 +114,7 @@ trait Resolver {
 ### 3.6 Windows integration
 - `window-vibrancy`: Mica on Win 11; Acrylic fallback; custom titlebar with drag region + min/max/close buttons.
 - Single-instance plugin; optional autostart setting; NSIS installer via tauri bundler.
-- `tracing` + rolling file logs in `%APPDATA%\Adios\logs\`.
+- `tracing` + rolling file logs in the app data dir (see Storage).
 
 ## 4. State management (Zustand)
 - `usePlayerStore` — current track, queue, position, volume, crossfadeMs, isPlaying, sourceChip state.

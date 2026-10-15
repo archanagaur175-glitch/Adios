@@ -1,9 +1,20 @@
 pub mod migrations;
+pub mod queries;
 
 #[cfg(test)]
 mod tests;
 
 use rusqlite::{Connection, Result};
+use std::sync::Mutex;
+
+/// Managed Tauri state holding the app database connection.
+pub struct DbState(pub Mutex<Connection>);
+
+impl DbState {
+    pub fn new(conn: Connection) -> Self {
+        Self(Mutex::new(conn))
+    }
+}
 
 const SCHEMA_VERSION_TABLE: &str = "CREATE TABLE IF NOT EXISTS schema_migrations (
   version INTEGER PRIMARY KEY,

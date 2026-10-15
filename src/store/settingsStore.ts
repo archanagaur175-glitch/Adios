@@ -1,9 +1,8 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { getSettings, setSetting } from "@/lib/api";
 
-/** Persisted settings mirror (source of truth: SQLite `settings` table from P2).
- *  Interim persistence: localStorage until the Rust settings commands land (P2.2),
- *  then the same shape is hydrated/saved through invoke. */
+/** Persisted settings mirror (source of truth: SQLite `settings` table).
+ *  Hydrated from Rust at startup; every `set` writes through via invoke. */
 
 export interface SettingsState {
   /** MusicBrainz contact email (D2); empty = placeholder UA + one-time warning. */
@@ -21,22 +20,41 @@ export interface SettingsState {
   /** True once the "set your contact email" warning has been shown. */
   mbWarningShown: boolean;
 
+  /** Load persisted settings from SQLite (call once at startup). */
+  hydrate: () => Promise<void>;
+  /** Patch settings into the store and write each key through to SQLite. */
   set: (patch: Partial<SettingsState>) => void;
 }
 
-export const useSettingsStore = create<SettingsState>()(
-  persist(
-    (set) => ({
-      contactEmail: "",
-      resolverOrder: ["local", "cache", "ytdlp", "piped"],
-      pipedInstances: [],
-      cacheSizeMb: 512,
-      defaultTier: "med",
-      crossfadeMs: 0,
-      mbWarningShown: false,
+const defaults: Omit<SettingsState, "hydrate" | "set"> = {
+  contactEmail: "",
+  resolverOrder: ["local", "cache", "ytdlp", "piped"],
+  pipedInstances: [],
+  cacheSizeMb: 512,
+  defaultTier: "med",
+  crossfadeMs: 0,
+  mbWarningShown: false,
+};
 
-      set: (patch) => set(patch),
-    }),
-    { name: "adios-settings" },
-  ),
-);
+export const useSettingsStore = create<SettingsState>((set) => ({
+  ...defaults,
+
+  hydrate: async () => {
+    const stored = await getSettings();
+    const known = Object.keys(defaults) as (keyof typeof defaults)[];
+    const patch: Partial<SettingsState> = {};
+    for (const key of known) {
+      if (key in stored) {
+        (patch as Record<string, unknown>)[key] = stored[key];
+      }
+    }
+    set(patch);
+  },
+
+  set: (patch) => {
+    set(patch);
+    for (const [key, value] of Object.entries(patch)) {
+      void setSetting(key, value);
+    }
+  },
+}));

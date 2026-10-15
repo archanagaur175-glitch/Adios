@@ -97,6 +97,24 @@ fn fts_triggers_track_insert_update_delete() {
 }
 
 #[test]
+fn settings_roundtrip_and_upsert() {
+    let conn = open_memory().expect("migrate");
+    queries::settings_set(&conn, "crossfadeMs", "0").expect("set");
+    queries::settings_set(&conn, "contactEmail", "\"user@example.com\"").expect("set");
+    let all = queries::settings_get_all(&conn).expect("get_all");
+    assert_eq!(all.get("crossfadeMs").map(String::as_str), Some("0"));
+    assert_eq!(
+        all.get("contactEmail").map(String::as_str),
+        Some("\"user@example.com\"")
+    );
+
+    queries::settings_set(&conn, "crossfadeMs", "250").expect("upsert");
+    let all = queries::settings_get_all(&conn).expect("get_all again");
+    assert_eq!(all.get("crossfadeMs").map(String::as_str), Some("250"));
+    assert_eq!(all.len(), 2, "upsert must not add a row");
+}
+
+#[test]
 fn fts_search_matches_title_and_artist() {
     let conn = open_memory().expect("migrate");
     insert_track(&conn, "Portishead", "Roads", "Dummy");
