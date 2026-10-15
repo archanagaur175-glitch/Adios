@@ -1,4 +1,9 @@
+import { useEffect } from "react";
 import { HashRouter, Route, Routes } from "react-router";
+import { initPlayerEngine } from "@/audio/engine";
+import { runSmokeIfEnabled } from "@/audio/smoke";
+import { inTauri, listTracks } from "@/lib/api";
+import { useLibraryStore } from "@/store/libraryStore";
 import { AppShell } from "@/routes/AppShell";
 import HomePage from "@/routes/Home";
 import LibraryPage from "@/routes/Library";
@@ -9,6 +14,18 @@ import CachedPage from "@/routes/Cached";
 import SettingsPage from "@/routes/Settings";
 
 function App() {
+  useEffect(() => {
+    initPlayerEngine();
+    if (inTauri) {
+      void listTracks()
+        .then(useLibraryStore.getState().setTracks)
+        .finally(() => useLibraryStore.getState().setHydrated(true));
+    } else {
+      useLibraryStore.getState().setHydrated(true);
+    }
+    void runSmokeIfEnabled();
+  }, []);
+
   return (
     <HashRouter>
       <Routes>

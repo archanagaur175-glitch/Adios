@@ -14,24 +14,7 @@
   box-sizing: border-box;
 }
 
-.player-bar-placeholder {
-  position: fixed;
-  left: var(--space-4);
-  right: var(--space-4);
-  bottom: var(--space-3);
-  height: 72px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--radius-panel);
-  background: var(--glass-strong);
-  backdrop-filter: blur(var(--blur-glass)) saturate(140%);
-  border: 1px solid var(--stroke);
-  box-shadow: var(--shadow-panel), inset 0 1px 0 var(--stroke-top);
-  color: var(--text-3);
-  font-size: var(--text-12);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
+/* Player bar styles live in components/player/playerbar.css (imported by PlayerBar). */
 
 .page {
   display: flex;

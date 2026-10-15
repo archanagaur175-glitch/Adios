@@ -20,11 +20,17 @@ interface PlayerState {
   crossfadeMs: number;
   repeatMode: RepeatMode;
   shuffle: boolean;
+  /** Bumped by seekTo; the engine listens and applies it (no echo loop). */
+  seekVersion: number;
 
   setQueue: (trackIds: number[], startIndex?: number) => void;
+  /** Atomically set queue + current track + start playback. */
+  playQueue: (trackIds: number[], startIndex?: number) => void;
   setPlaying: (playing: boolean) => void;
   setPosition: (sec: number) => void;
   setDuration: (sec: number) => void;
+  /** Request an engine seek; bumps seekVersion. */
+  seekTo: (sec: number) => void;
   setVolume: (volume: number) => void;
   setMuted: (muted: boolean) => void;
   setCrossfadeMs: (ms: number) => void;
@@ -32,6 +38,8 @@ interface PlayerState {
   setShuffle: (shuffle: boolean) => void;
   next: () => void;
   prev: () => void;
+  /** Id the queue would advance to (for preloading); null at queue end. */
+  peekNextId: () => number | null;
 }
 
 const clamp = (value: number, min: number, max: number) =>
@@ -49,6 +57,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   crossfadeMs: 0,
   repeatMode: "off",
   shuffle: false,
+  seekVersion: 0,
 
   setQueue: (trackIds, startIndex = 0) =>
     set({
@@ -56,9 +65,26 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       queueIndex: clamp(startIndex, 0, trackIds.length - 1),
       currentTrackId: trackIds[startIndex] ?? null,
     }),
+  playQueue: (trackIds, startIndex = 0) =>
+    set({
+      queue: trackIds,
+      queueIndex: clamp(startIndex, 0, trackIds.length - 1),
+      currentTrackId: trackIds[startIndex] ?? null,
+      isPlaying: true,
+      positionSec: 0,
+      durationSec: 0,
+    }),
   setPlaying: (isPlaying) => set({ isPlaying }),
   setPosition: (positionSec) => set({ positionSec }),
   setDuration: (durationSec) => set({ durationSec }),
+  seekTo: (sec) => {
+    const { durationSec } = get();
+    const clamped = clamp(sec, 0, durationSec > 0 ? durationSec : Math.max(sec, 0));
+    set((state) => ({
+      positionSec: clamped,
+      seekVersion: state.seekVersion + 1,
+    }));
+  },
   setVolume: (volume) => set({ volume: clamp(volume, 0, 1), muted: false }),
   setMuted: (muted) => set({ muted }),
   setCrossfadeMs: (ms) => set({ crossfadeMs: clamp(Math.round(ms), 0, 8000) }),
@@ -66,19 +92,43 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setShuffle: (shuffle) => set({ shuffle }),
 
   next: () => {
-    const { queue, queueIndex, repeatMode } = get();
+    const { queue, queueIndex, repeatMode, shuffle } = get();
     if (queue.length === 0) return;
+    if (shuffle && queue.length > 1) {
+      let index = queueIndex;
+      while (index === queueIndex) index = Math.floor(Math.random() * queue.length);
+      set({ queueIndex: index, currentTrackId: queue[index] ?? null, positionSec: 0 });
+      return;
+    }
     let index = queueIndex + 1;
     if (index >= queue.length) {
       if (repeatMode === "queue") index = 0;
       else return;
     }
-    set({ queueIndex: index, currentTrackId: queue[index] ?? null });
+    set({ queueIndex: index, currentTrackId: queue[index] ?? null, positionSec: 0 });
   },
   prev: () => {
-    const { queue, queueIndex } = get();
+    const { queue, queueIndex, positionSec } = get();
     if (queue.length === 0) return;
+    if (positionSec > 3) {
+      get().seekTo(0);
+      return;
+    }
     const index = Math.max(0, queueIndex - 1);
-    set({ queueIndex: index, currentTrackId: queue[index] ?? null });
+    set({ queueIndex: index, currentTrackId: queue[index] ?? null, positionSec: 0 });
+  },
+  peekNextId: () => {
+    const { queue, queueIndex, repeatMode, shuffle } = get();
+    if (queue.length === 0) return null;
+    if (shuffle) {
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const index = Math.floor(Math.random() * queue.length);
+        if (index !== queueIndex) return queue[index] ?? null;
+      }
+      return null;
+    }
+    const index = queueIndex + 1;
+    if (index < queue.length) return queue[index] ?? null;
+    return repeatMode === "queue" ? (queue[0] ?? null) : null;
   },
 }));

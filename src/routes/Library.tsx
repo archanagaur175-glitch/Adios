@@ -2,16 +2,17 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { inTauri, listTracks, scanFolder, type ScanSummary } from "@/lib/api";
 import { formatDuration } from "@/lib/format";
-import type { Track } from "@/lib/types";
+import { useLibraryStore } from "@/store/libraryStore";
+import { usePlayerStore } from "@/store/playerStore";
 
 export default function LibraryPage() {
-  const [tracks, setTracks] = useState<Track[]>([]);
+  const tracks = useLibraryStore((s) => s.tracks);
   const [summary, setSummary] = useState<ScanSummary | null>(null);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    setTracks(await listTracks());
+    useLibraryStore.getState().setTracks(await listTracks());
   }, []);
 
   useEffect(() => {
@@ -32,6 +33,12 @@ export default function LibraryPage() {
     } finally {
       setScanning(false);
     }
+  }
+
+  function playFrom(trackId: number) {
+    usePlayerStore
+      .getState()
+      .playQueue(tracks.map((t) => t.id), tracks.findIndex((t) => t.id === trackId));
   }
 
   return (
@@ -68,7 +75,13 @@ export default function LibraryPage() {
           {tracks.map((track) => (
             <li
               key={track.id}
-              className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-card px-3 py-2 transition hover:bg-glass"
+              onClick={() => playFrom(track.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") playFrom(track.id);
+              }}
+              tabIndex={0}
+              role="button"
+              className="grid cursor-pointer grid-cols-[1fr_auto] items-center gap-3 rounded-card px-3 py-2 transition hover:bg-glass focus-visible:bg-glass"
             >
               <div className="min-w-0">
                 <p className="truncate text-14 text-ink-1">

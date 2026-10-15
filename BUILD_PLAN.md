@@ -1,6 +1,6 @@
 # Adios — Build Plan
 
-STATUS: APPROVED (2026-10-15) · P3 · Step 3.3 · IN PROGRESS
+STATUS: APPROVED (2026-10-15) · P3 · Step 3.4 · IN PROGRESS
 
 ## DECISIONS
 - **D1 MSVC Build Tools**: missing (verified: no cl.exe). Install REQUIRED in P0.1 after approval: `winget install Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"` (UAC + large download; reopen terminal after). If install fails: STOP and ask. No GNU-toolchain workaround.
@@ -68,7 +68,7 @@ STATUS: APPROVED (2026-10-15) · P3 · Step 3.3 · IN PROGRESS
 - **Gate**: scan folder → play/seek/next/prev works; analyser returns non-zero data (logged); wrong-token/Host → 403 test passes; crossfade listening test logged (D3).
 - [x] **3.1 Loopback server skeleton: token + Host validation + CORS + Range (local files)** — axum on 127.0.0.1:0; `server_info` invoke. Tests: valid request 200, Range → 206 with correct bytes, wrong token → 403, wrong Host → 403 (R10). Verify: `cargo test`.
 - [x] **3.2 Folder picker + scan with lofty (tags + embedded art → covers/)** — `scan_folder` command + `tauri-plugin-dialog` folder picker + Library page Scan button; embedded Jpg/Png art → `covers/<sanitized-stem>-<fnv1a>.jpg`. Tests: recursive/hidden/extension filter, WAV fixture via real lofty read (duration+fallbacks), dup skip, error collection. Verify: `cargo test`; live scan of real MP3s logs N tracks.
-- [ ] **3.3 PlayerEngine A/B + Web Audio graph + queue + player bar (seek/volume)** — `<audio crossOrigin="anonymous">` → loopback URLs. Verify: tsc/lint; manual play/seek/next/prev; log AnalyserNode RMS > 0 while playing.
+- [x] **3.3 PlayerEngine A/B + Web Audio graph + queue + player bar (seek/volume)** — two `<audio crossOrigin="anonymous">` → loopback URLs (server_info invoke); graph Element→Gain→Analyser→Master (analyser before master so bands survive low volume); A/B preload-and-swap (D3, crossfadeMs 0); store-driven engine with seekVersion (no echo loops); PlayerBar (transport/seek/volume/cover via convertFileSrc); Library rows click-to-play. Gate: tsc/lint clean; smoke log RMS > 0 while playing, seek/next/prev/pause verified.
 - [ ] **3.4 Media Session + global media keys + keyboard shortcuts + D3 crossfade listening test** — Verify: tsc/lint; manual media-key test; log listening-test result and final crossfade default.
 
 ### P4 Resolver spike + proxy (CORE RISK — before metadata/UI polish)
@@ -179,9 +179,13 @@ P10 (optional, NOT planned): 3D layer behind existing VisualizerHost interface.
 | 2026-10-15 | re-scan same fixture (duplicate handling, fresh app run) | `[scan] ... added=0 skipped=3 failed=0 in 3ms` — DB persistence + ON CONFLICT path verified live |
 | 2026-10-15 | headless DOM `http://localhost:1420/#/library` | Library page renders, `Scan folder` button present, browser-mode gate message correct (invoke disabled outside Tauri) |
 | 2026-10-15 | `acl-manifests.json` check + file-length audit | `dialog` permission registered ✓; scan/mod 153, tags 91, tests 109, cmd 33, Library 90, api 93, format 11 — all ≤200 — **P3.2 PASS** |
+| 2026-10-15 | `npx tsc --noEmit; npm run lint` (P3.3) | both clean (engine/graph/bands/smoke, PlayerBar+icons+css, store seek/playQueue, App init, Library click-to-play) |
+| 2026-10-15 | dev smoke `VITE_ADIOS_SMOKE=1` first run (StrictMode double-harness, interleaved — diagnosed, not a bug: queue [1,3,2] artist-sort + shared store) | rms>0, seek/next correct; harness made idempotent (`started` guard) |
+| 2026-10-15 | dev smoke `VITE_ADIOS_SMOKE=1` clean single run (dev8) | `[smoke] tracks loaded: 3` · `rms=0.0126 isPlaying=true position=2.05s duration=261.36s` (**AnalyserNode RMS > 0 while playing**) · `after seek(5): position=5.53s` · `after next: 1 -> 3 position=1.32s isPlaying=true` · `after prev: 3 -> 1 position=1.06s isPlaying=true` · `final isPlaying=false - smoke done` — **P3.3 PASS** |
+| 2026-10-15 | `cargo test` (P3.3 regression) | 20 passed, 0 failed; file-length audit: engine 196, playerStore 134, PlayerBar 110, playerbar.css 149, smoke 83, bands/graph 52, icons 70 — all ≤200 |
 
 ## OPEN QUESTIONS
 1. None blocking. (D1–D4 decided by user; spike findings in P4.2 may raise a PO-token question — handled by STOP rule.)
 
 ## NEXT ACTION
-Run P3.3: PlayerEngine (two `<audio crossOrigin="anonymous">`, A/B swap) + Web Audio graph + queue store + player bar (seek/volume); wire loopback URLs from `server_info`; verify tsc/lint + manual play/seek/next/prev and log AnalyserNode RMS > 0 while playing.
+Run P3.4: Media Session metadata + handlers, Rust global media keys (RegisterHotKey → webview events), keyboard shortcuts hook (Space/←/→/↑/↓/Ctrl+K/L/Q/M), and the D3 crossfade listening test (try crossfadeMs values, record final default); verify tsc/lint + manual media-key test.

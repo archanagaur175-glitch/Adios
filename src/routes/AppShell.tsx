@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet } from "react-router";
 import { Titlebar } from "@/components/titlebar/Titlebar";
 import { Sidebar } from "@/components/sidebar/Sidebar";
+import { PlayerBar } from "@/components/player/PlayerBar";
 import "./appshell.css";
 
 export function AppShell() {
@@ -19,9 +20,7 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
-      <footer className="player-bar-placeholder" aria-hidden="true">
-        Player bar arrives in P3
-      </footer>
+      <PlayerBar />
     </div>
   );
 }

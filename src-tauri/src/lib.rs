@@ -4,7 +4,7 @@ mod scan;
 mod server;
 mod win;
 
-use tauri::Manager;
+use tauri::{Listener, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -31,6 +31,11 @@ pub fn run() {
                 base_url: loopback.base_url(),
             });
             app.manage(server::ManagedServer(loopback));
+
+            // Debug harness channel: webview smoke logs (src/audio/smoke.ts).
+            let _ = app.listen("smoke", |event| {
+                println!("[smoke] {}", event.payload());
+            });
 
             // Debug-only smoke harness: run one scan at startup so the
             // real command + lofty path can be verified headlessly.

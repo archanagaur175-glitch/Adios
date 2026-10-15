@@ -74,6 +74,37 @@ export async function deleteTrack(id: number): Promise<number> {
   return invoke<number>("delete_track", { id });
 }
 
+// ---------- Loopback server ----------
+
+/** Connection info for the Rust loopback audio server (Invariant 1). */
+export interface ServerInfo {
+  port: number;
+  token: string;
+  baseUrl: string;
+}
+
+let cachedServerInfo: ServerInfo | null = null;
+
+/** Fetched once per session via `server_info`; null outside Tauri or on error. */
+export async function getServerInfo(): Promise<ServerInfo | null> {
+  if (!inTauri) return null;
+  if (cachedServerInfo) return cachedServerInfo;
+  try {
+    cachedServerInfo = await invoke<ServerInfo>("server_info");
+    return cachedServerInfo;
+  } catch (error) {
+    console.error("[api] server_info failed:", error);
+    return null;
+  }
+}
+
+/** Loopback URL for a local file path (always goes through the tokened server). */
+export async function buildMediaUrl(path: string): Promise<string | null> {
+  const info = await getServerInfo();
+  if (!info) return null;
+  return `${info.baseUrl}/media/${info.token}?path=${encodeURIComponent(path)}`;
+}
+
 // ---------- Scan ----------
 
 /** Summary returned by one folder scan (mirrors Rust ScanSummary). */
