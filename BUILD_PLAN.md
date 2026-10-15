@@ -1,6 +1,6 @@
 # Adios — Build Plan
 
-STATUS: APPROVED (2026-10-15) · P0 · Step 0.3 · IN PROGRESS
+STATUS: APPROVED (2026-10-15) · P0 · Step 0.4 · IN PROGRESS
 
 ## DECISIONS
 - **D1 MSVC Build Tools**: missing (verified: no cl.exe). Install REQUIRED in P0.1 after approval: `winget install Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"` (UAC + large download; reopen terminal after). If install fails: STOP and ask. No GNU-toolchain workaround.
@@ -39,7 +39,7 @@ STATUS: APPROVED (2026-10-15) · P0 · Step 0.3 · IN PROGRESS
 - **Gate**: `npm run tauri dev` opens a window; `cargo build` OK; tsc + lint clean.
 - [x] **0.1 Install/verify MSVC Build Tools (D1)** — run winget command (user approves UAC), reopen checks. Done-When: `cl.exe` reachable via `vswhere` + vcvars. Verify: `& "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath` returns a path; then `cmd /c "\"<path>\VC\Auxiliary\Build\vcvars64.bat\" && where cl"` finds cl.exe. (If install fails → STOP, log, ask.)
 - [x] **0.2 Non-interactive scaffold: Tauri v2 + React + Vite + TS strict** — `npm create tauri-app@latest . -- -m npm -t react-ts -y -f --identifier com.nullbrain.adios --tauri-version 2` (flags confirmed via `--help` first; NON-interactive). Done-When: app runs. Verify: `npm install; cargo build` succeeds; `npm run tauri dev` opens window. ⚠️ `-f` wiped uncommitted plan files — restored (see D14).
-- [ ] **0.3 Tailwind v4 + ESLint + path aliases** — `npm i -D tailwindcss @tailwindcss/vite eslint typescript-eslint`; wire vite plugin + `@import "tailwindcss"`; `@/*` alias in tsconfig + vite. Verify: `npx tsc --noEmit` (clean), `npm run lint` (clean), `npm run dev` renders.
+- [x] **0.3 Tailwind v4 + ESLint + path aliases** — `npm i -D tailwindcss @tailwindcss/vite eslint typescript-eslint @eslint/js @types/node`; `tailwindcss()` in vite config + `@import "tailwindcss"` in `src/index.css`; `@/*` alias in tsconfig paths + vite resolve; scripts `typecheck`/`lint`. Verify: `npx tsc --noEmit` (clean), `npm run lint` (clean), `npm run build` renders (Tailwind CSS 13.3 kB emitted).
 - [ ] **0.4 Commit plan files + scaffold (chore)** — git repo exists (re-init only if gone); commit BUILD_PLAN.md, docs/, scaffold. Verify: `git status --short` clean; `git log --oneline` has initial commit.
 
 ### P1 App shell
@@ -143,9 +143,14 @@ P10 (optional, NOT planned): 3D layer behind existing VisualizerHost interface.
 | 2026-10-15 | `cargo build` (workdir src-tauri) | Finished dev profile in 4m45s, no errors — MSVC toolchain works |
 | 2026-10-15 | `npm run tauri dev` smoke (P0.2 gate) | Process `tauri-app` PID 23044, title 'tauri-app' — **P0.2 PASS** (killed after) |
 | 2026-10-15 | incident: plan files gone after scaffold | cause: `create-tauri-app -f` wiped uncommitted BUILD_PLAN.md + docs/; restored from session context; D14 added |
+| 2026-10-15 | `git add BUILD_PLAN.md docs && git commit` | root commit `48aba66` "chore: add build plan and architecture/design docs" |
+| 2026-10-15 | `npm i -D tailwindcss @tailwindcss/vite eslint typescript-eslint @eslint/js @types/node` (P0.3) | 109+2 packages, 0 vulnerabilities |
+| 2026-10-15 | `npx tsc --noEmit` (after TS6 baseUrl fix: paths without baseUrl) | clean; alias probe `@/lib/...` resolved |
+| 2026-10-15 | `npm run lint` | clean (0 errors, 0 warnings) |
+| 2026-10-15 | `npm run build` (P0.3 gate) | tsc + vite build OK, `dist/assets/index-*.css` 13.33 kB (Tailwind active) — **P0.3 PASS** |
 
 ## OPEN QUESTIONS
 1. None blocking. (D1–D4 decided by user; spike findings in P4.2 may raise a PO-token question — handled by STOP rule.)
 
 ## NEXT ACTION
-Run P0.3: add Tailwind v4 + ESLint + path aliases, verify with `npx tsc --noEmit` and `npm run lint`.
+Run P0.4: commit scaffold + configs, then P0 gate smoke (`npm run tauri dev`), then start Phase 1.
