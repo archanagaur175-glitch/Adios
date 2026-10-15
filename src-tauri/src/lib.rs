@@ -1,5 +1,6 @@
 mod commands;
 mod db;
+mod meta;
 mod resolver;
 mod scan;
 mod server;
@@ -60,6 +61,13 @@ pub fn run() {
             let table = std::sync::Arc::new(resolver::ResolutionTable::new());
             app.manage(table.clone());
 
+            // Metadata search (P5.1): cache-first MB client behind the
+            // global 1-req/s queue. UA placeholder per D2 — contact email
+            // field + warning land with the search UI (5.3).
+            let mb_client =
+                meta::mb_client::MbClient::with_default_transport(shared_db.clone(), meta::mb_client::user_agent(None));
+            app.manage(mb_client);
+
             let loopback =
                 server::start(shared_db, cache_dir, chain, table).expect("loopback server");
             println!("[server] listening on {}", loopback.base_url());
@@ -109,7 +117,8 @@ pub fn run() {
             commands::resolver::resolve_query,
             commands::resolver::resolver_health,
             commands::resolver::test_instance,
-            commands::ytdlp::update_ytdlp
+            commands::ytdlp::update_ytdlp,
+            commands::search::search_metadata
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
