@@ -23,7 +23,11 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::settings::get_settings,
-            commands::settings::set_setting
+            commands::settings::set_setting,
+            commands::library::list_tracks,
+            commands::library::get_track,
+            commands::library::insert_track,
+            commands::library::delete_track
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

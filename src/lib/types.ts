@@ -17,11 +17,14 @@ export interface Track {
   trackNo?: number | null;
   discNo?: number | null;
   coverPath?: string | null;
-  /** Dynamic accent colors extracted from cover art (OKLCH-able hex). */
+  /** Dynamic accent colors extracted from cover art (hex). */
   accent?: string | null;
   accent2?: string | null;
-  /** [r, g, b] triplets cached from the 32×32 cover downscale. */
-  dominantColors?: [string, string, string] | null;
+  /** JSON array of 3 dominant colors from the cover downscale, as stored by Rust. */
+  dominantColorsJson?: string | null;
+  /** File size in bytes (local files). */
+  fileSize?: number | null;
+  mtime?: number | null;
   addedAt: string;
   playCount: number;
 }

@@ -1,6 +1,6 @@
 # Adios — Build Plan
 
-STATUS: APPROVED (2026-10-15) · P2 · Step 2.3 · IN PROGRESS
+STATUS: APPROVED (2026-10-15) · P3 · Step 3.1 · IN PROGRESS
 
 ## DECISIONS
 - **D1 MSVC Build Tools**: missing (verified: no cl.exe). Install REQUIRED in P0.1 after approval: `winget install Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"` (UAC + large download; reopen terminal after). If install fails: STOP and ask. No GNU-toolchain workaround.
@@ -59,7 +59,7 @@ STATUS: APPROVED (2026-10-15) · P2 · Step 2.3 · IN PROGRESS
 - **Gate**: migration tests pass; settings + track CRUD roundtrip; `cargo test` green.
 - [x] **2.1 rusqlite init + migration runner + schema 001 (tables, FTS5, triggers)** — per docs/ARCHITECTURE.md §3.1. Unit tests: fresh migration, re-run is no-op, FTS insert/update/delete triggers. Verify: `cargo test` in src-tauri.
 - [x] **2.2 Settings get/set commands + settings store** — Verify: `cargo test` (settings roundtrip); tsc/lint.
-- [ ] **2.3 Library CRUD commands + typed invoke wrappers (`src/lib/api.ts`)** — Verify: `cargo test` (CRUD roundtrip); tsc/lint.
+- [x] **2.3 Library CRUD commands + typed invoke wrappers (`src/lib/api.ts`)** — Verify: `cargo test` (CRUD roundtrip); tsc/lint.
 
 ### P3 Local playback (loopback server + engine + scan)
 - **Modules**: `src-tauri/src/server/{mod,handlers,range}.rs`, `commands/player.rs`, `commands/scan.rs`, `src/audio/{engine,graph,bands,mediaSession}.ts`, `src/store/playerStore.ts`, `src/components/player/*`, folder-scan UI.
@@ -165,9 +165,11 @@ P10 (optional, NOT planned): 3D layer behind existing VisualizerHost interface.
 | 2026-10-15 | `cargo test` (P2.1 gate) | **5 passed, 0 failed** (fresh_migration_creates_all_tables, migration_rerun_is_noop, version_mismatch_skips_reapplied_migration, fts_triggers_track_insert_update_delete, fts_search_matches_title_and_artist) — **P2.1 PASS** |
 | 2026-10-15 | `cargo test` (P2.2: + settings_roundtrip_and_upsert) | **6 passed, 0 failed**; `cargo build` 0 warnings; tsc + lint clean |
 | 2026-10-15 | `npm run tauri dev` smoke (P2.2) | `[db] opened at C:\Users\archa\AppData\Roaming\com.nullbrain.adios\adios.db`, db+WAL files created, window title Adios — **P2.2 PASS**; docs storage path corrected to Tauri identifier-based dir |
+| 2026-10-15 | `cargo test` (P2.3: + track_crud_roundtrip, tracks_all_orders_by_artist_then_title) | **8 passed, 0 failed**; `cargo build` 0 warnings; tsc + lint clean; headless render OK — **P2.3 PASS** |
+| 2026-10-15 | P2 gate review | migrations 8/8 tests ✓ settings roundtrip ✓ CRUD roundtrip ✓ typed api.ts ✓ tsc/lint clean ✓ — **P2 GATE PASS** |
 
 ## OPEN QUESTIONS
 1. None blocking. (D1–D4 decided by user; spike findings in P4.2 may raise a PO-token question — handled by STOP rule.)
 
 ## NEXT ACTION
-Run P2.3: library CRUD queries + commands + typed invoke wrappers in `src/lib/api.ts`; verify `cargo test` roundtrip + tsc/lint.
+Run P3.1: axum loopback server skeleton (ephemeral port, session token, Host validation, CORS, Range for local files) + tests for 200/206/403 cases; verify with `cargo test`.
