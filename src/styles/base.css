@@ -6,15 +6,34 @@ body,
   height: 100%;
 }
 
+/* Transparent page background so the Mica/Acrylic backdrop shows through
+   (required by window-vibrancy: html, body { background: transparent }) */
+html,
+body {
+  background: transparent;
+}
+
 body {
   margin: 0;
-  background: var(--bg-0);
   color: var(--text-1);
   font-family: var(--font-ui);
   font-size: var(--text-14);
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
   user-select: none;
+}
+
+/* App root surface — translucent tint over the system backdrop.
+   Full treatment (aurora L0) arrives in P6; keep alpha < 1 so Mica shows. */
+.app-surface {
+  height: 100%;
+  background: rgba(7, 8, 12, 0.62);
+}
+
+.app-content {
+  padding: calc(32px + var(--space-6)) var(--space-6) var(--space-6);
+  height: 100%;
+  box-sizing: border-box;
 }
 
 h1,

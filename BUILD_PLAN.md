@@ -1,6 +1,6 @@
 # Adios — Build Plan
 
-STATUS: APPROVED (2026-10-15) · P1 · Step 1.2 · IN PROGRESS
+STATUS: APPROVED (2026-10-15) · P1 · Step 1.3 · IN PROGRESS
 
 ## DECISIONS
 - **D1 MSVC Build Tools**: missing (verified: no cl.exe). Install REQUIRED in P0.1 after approval: `winget install Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"` (UAC + large download; reopen terminal after). If install fails: STOP and ask. No GNU-toolchain workaround.
@@ -48,7 +48,7 @@ STATUS: APPROVED (2026-10-15) · P1 · Step 1.2 · IN PROGRESS
 - **Risks**: Mica + custom titlebar drag regions; maximized-window hit testing.
 - **Gate**: navigable shell; Mica applied (Acrylic fallback); tokens drive colors; tsc + lint clean.
 - [x] **1.1 Design tokens + global CSS + custom scrollbar** — tokens per docs/DESIGN.md §3. Verify: `npx tsc --noEmit && npm run lint`; visual check dev window.
-- [ ] **1.2 Custom titlebar + window controls + Mica/Acrylic vibrancy** — `vibrancy.rs` + drag region + min/max/close via Tauri window API. Verify: tsc/lint; manual: drag works, controls work, Mica visible (log fallback if not).
+- [x] **1.2 Custom titlebar + window controls + Mica/Acrylic vibrancy** — `vibrancy.rs` + drag region + min/max/close via Tauri window API. Verify: tsc/lint; manual: drag works, controls work, Mica visible (log fallback if not).
 - [ ] **1.3 Layout + sidebar + react-router** — AppShell with 5 routes. Verify: `npx tsc --noEmit && npm run lint`; manual nav each route.
 - [ ] **1.4 Zustand stores scaffold + settings persistence wiring** — 5 stores, typed, stubbed. Verify: tsc/lint; store unit smoke test if trivial.
 
@@ -152,9 +152,12 @@ P10 (optional, NOT planned): 3D layer behind existing VisualizerHost interface.
 | 2026-10-15 | `npm run tauri dev` smoke (P0 gate) | window up, PID 20868 — **P0 GATE PASS** (killed after) |
 | 2026-10-15 | `npx tsc --noEmit; npm run lint; npm run build` (P1.1) | all clean; dist CSS 14.9 kB |
 | 2026-10-15 | theme-utility probe (temp classes → build → grep dist CSS) | `--color-ink-2` ✓, `#0d0f16` ✓, `.rounded-card{border-radius:var(--radius-card)}` ✓, font-display ✓ — **P1.1 PASS** (probe reverted, tsc clean) |
+| 2026-10-15 | API check: tauri-2.12.4 `src/window/mod.rs`, tauri-utils `WindowEffect` enum, @tauri-apps/api `window.d.ts`, capability schema | EffectsBuilder doc example, variants MicaDark/Mica/Acrylic/Tabbed, minimize/toggleMaximize/close/isMaximized/startDragging all exist; permission ids verified |
+| 2026-10-15 | `npx tsc --noEmit; npm run lint; cargo build` (P1.2) | all clean (after adding `use tauri::Manager`) |
+| 2026-10-15 | `npm run tauri dev` smoke (P1.2 gate) | window PID 20536 title **"Adios"**, log `[vibrancy] applied: mica-dark`, decorations off + 1280×800/min 900×600 — **P1.2 PASS** (drag/controls/visual need user confirmation) |
 
 ## OPEN QUESTIONS
 1. None blocking. (D1–D4 decided by user; spike findings in P4.2 may raise a PO-token question — handled by STOP rule.)
 
 ## NEXT ACTION
-Run P1.2: custom titlebar (drag region + window controls) + Mica/Acrylic vibrancy in Rust; verify tsc/lint + manual window controls.
+Run P1.3: AppShell layout + collapsible sidebar + react-router routes; verify tsc/lint + manual nav.

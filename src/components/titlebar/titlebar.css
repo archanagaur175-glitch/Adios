@@ -1,0 +1,72 @@
+/* Custom titlebar — 32px, transparent over the Mica/Acrylic backdrop */
+
+.titlebar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 50;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  background: transparent;
+}
+
+.titlebar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-left: var(--space-3);
+  height: 100%;
+}
+
+.titlebar__name {
+  font-size: var(--text-12);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.titlebar__controls {
+  display: flex;
+  height: 100%;
+}
+
+.titlebar__btn {
+  width: 46px;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  cursor: default;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.titlebar__btn svg {
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+}
+
+.titlebar__btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.titlebar__btn:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.titlebar__btn--close:hover {
+  background: #c42b1c;
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .titlebar__btn {
+    transition: none;
+  }
+}
