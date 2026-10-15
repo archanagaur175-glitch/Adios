@@ -1,15 +1,15 @@
 //! Resolver chain (architecture §3.3, Invariant 2): one trait, chain order
 //! LocalFile → Cache → YtDlpSidecar → Piped/Invidious (settings-configurable).
-//! P4.1 ships LocalFile + Cache; yt-dlp/piped arrive in P4.2/P4.4.
-//!
-//! resolve()/health-through-chain are consumed by the P4.2+ commands; the
-//! module keeps them now so the trait shape is stable — attribute removed
-//! when commands/resolver.rs lands.
-#![allow(dead_code)]
 
 pub mod cache;
 pub mod local;
+pub mod piped;
+pub mod piped_api;
+pub mod piped_formats;
 pub mod score;
+pub mod table;
+
+pub use table::{ResolutionTable, SharedTable};
 pub mod ytdlp;
 
 #[cfg(test)]
@@ -19,7 +19,16 @@ mod tests;
 mod chain_tests;
 
 #[cfg(test)]
+mod cache_writeback_tests;
+
+#[cfg(test)]
 mod ytdlp_tests;
+
+#[cfg(test)]
+mod piped_tests;
+
+#[cfg(test)]
+mod table_tests;
 
 use std::future::Future;
 use std::pin::Pin;

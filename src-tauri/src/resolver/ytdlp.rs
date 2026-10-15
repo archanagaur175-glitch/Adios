@@ -1,14 +1,18 @@
-//! yt-dlp sidecar resolver (architecture §3.3, P4.2): `ytsearch1:` query →
-//! `--dump-single-json` → score the entry → bestaudio stream URL.
+//! yt-dlp sidecar resolver (architecture §3.3, P4.2/P4.4): `ytsearch1:`
+//! query → `--dump-single-json` → score the entry → bestaudio stream URL.
+//! Async tokio::process (P4.4) so a 5 s extraction never blocks a runtime
+//! worker; the binary path lives in a shared `BinHandle` so the
+//! "Update yt-dlp" command can hot-swap it.
 //!
 //! Spike (2026.08.19 binary, 2026-10-15): search + m4a format extraction
 //! succeeded in ~5 s with NO EJS/JS-runtime and NO PO-token warnings.
 
 use std::path::PathBuf;
-use std::process::Command;
+use std::sync::Arc;
 use std::time::Instant;
 
 use serde::Deserialize;
+use tokio::process::Command;
 
 use super::score::{score, ScoreOutcome};
 use super::{BoxFuture, Candidate, Health, HealthStatus, Query, ResolveError, Resolver};
@@ -18,21 +22,26 @@ const FORMAT_SELECTOR: &str = "bestaudio[ext=m4a]/bestaudio";
 /// yt-dlp network bound per request — keeps a hung instance from stalling.
 const SOCKET_TIMEOUT_SECS: &str = "15";
 
+/// Shared yt-dlp binary path: resolver reads, `update_ytdlp` hot-swaps.
+pub type BinHandle = Arc<tokio::sync::RwLock<PathBuf>>;
+
+pub fn bin_handle(initial: PathBuf) -> BinHandle {
+    Arc::new(tokio::sync::RwLock::new(initial))
+}
+
 pub struct YtDlpResolver {
-    bin: PathBuf,
+    bin: BinHandle,
 }
 
 impl YtDlpResolver {
-    pub fn new(bin: PathBuf) -> Self {
+    pub fn new(bin: BinHandle) -> Self {
         Self { bin }
     }
 
-    fn health_blocking(&self) -> Health {
+    async fn health_async(&self) -> Health {
         let started = Instant::now();
-        let status = match Command::new(&self.bin)
-            .arg("--version")
-            .output()
-        {
+        let path = self.bin.read().await.clone();
+        let status = match Command::new(&path).arg("--version").output().await {
             Ok(out) if out.status.success() && !out.stdout.is_empty() => HealthStatus::Ok,
             _ => HealthStatus::Down,
         };
@@ -42,11 +51,13 @@ impl YtDlpResolver {
         }
     }
 
-    fn resolve_blocking(&self, query: &Query) -> Result<Candidate, ResolveError> {
+    async fn resolve_async(&self, query: &Query) -> Result<Candidate, ResolveError> {
+        let path = self.bin.read().await.clone();
         let args = build_args(query);
-        let output = Command::new(&self.bin)
+        let output = Command::new(&path)
             .args(&args)
             .output()
+            .await
             .map_err(|e| ResolveError::Internal(format!("yt-dlp spawn failed: {e}")))?;
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -144,12 +155,10 @@ impl Resolver for YtDlpResolver {
     }
 
     fn health<'a>(&'a self) -> BoxFuture<'a, Health> {
-        // Blocking process spawn; fine for personal-use scale (noted in docs).
-        Box::pin(std::future::ready(self.health_blocking()))
+        Box::pin(self.health_async())
     }
 
     fn resolve<'a>(&'a self, query: &'a Query) -> BoxFuture<'a, Result<Candidate, ResolveError>> {
-        let outcome = self.resolve_blocking(query);
-        Box::pin(std::future::ready(outcome))
+        Box::pin(self.resolve_async(query))
     }
 }

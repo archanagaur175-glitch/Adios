@@ -1,4 +1,4 @@
-use crate::resolver::SharedDb;
+use crate::resolver::{SharedChain, SharedDb, SharedTable};
 use crate::server::proxy::remote_response;
 use crate::server::range::{mime_for_path, parse_range, FileRange};
 use axum::body::Body;
@@ -28,6 +28,9 @@ pub struct ServerState {
     pub client: reqwest::Client,
     pub db: SharedDb,
     pub cache_dir: PathBuf,
+    /// Chain + table power the single re-resolve on upstream 4xx (P4.4).
+    pub chain: SharedChain,
+    pub table: SharedTable,
 }
 
 pub fn router(state: Arc<ServerState>) -> Router {
@@ -60,23 +63,25 @@ pub async fn media(
     let range_header = headers.get(RANGE).and_then(|v| v.to_str().ok());
 
     if let Some(url) = query.url.as_deref() {
-        let response =
-            remote_response(&state.db, &state.cache_dir, &state.client, url, range_header).await;
+        let response = remote_response(&state, url, range_header).await;
         return with_cors(response, origin);
     }
     let Some(path) = query.path.as_deref() else {
         return with_cors(plain(StatusCode::BAD_REQUEST, "path or url required"), origin);
     };
-    let path = PathBuf::from(path);
-    let meta = match tokio::fs::metadata(&path).await {
+    with_cors(path_response(&PathBuf::from(path), range_header).await, origin)
+}
+
+/// Local-file response (shared by ?path= requests and re-resolved paths).
+pub(super) async fn path_response(path: &PathBuf, range_header: Option<&str>) -> Response {
+    let meta = match tokio::fs::metadata(path).await {
         Ok(meta) if meta.is_file() => meta,
-        _ => return with_cors(plain(StatusCode::NOT_FOUND, "not found"), origin),
+        _ => return plain(StatusCode::NOT_FOUND, "not found"),
     };
     let len = meta.len();
-
-    let response = match parse_range(range_header, len) {
-        Ok(Some(range)) => file_response(&path, len, Some(range)).await,
-        Ok(None) => file_response(&path, len, None).await,
+    match parse_range(range_header, len) {
+        Ok(Some(range)) => file_response(path, len, Some(range)).await,
+        Ok(None) => file_response(path, len, None).await,
         Err(()) => {
             let mut res = plain(StatusCode::RANGE_NOT_SATISFIABLE, "bad range");
             res.headers_mut().insert(
@@ -85,8 +90,7 @@ pub async fn media(
             );
             res
         }
-    };
-    with_cors(response, origin)
+    }
 }
 
 /// OPTIONS preflight (defensive; media elements normally send simple requests).

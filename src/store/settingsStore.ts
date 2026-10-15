@@ -19,6 +19,8 @@ export interface SettingsState {
   crossfadeMs: number;
   /** True once the "set your contact email" warning has been shown. */
   mbWarningShown: boolean;
+  /** Persisted yt-dlp binary path after "Update yt-dlp" (P4.4). */
+  ytdlpPath: string;
 
   /** Load persisted settings from SQLite (call once at startup). */
   hydrate: () => Promise<void>;
@@ -34,6 +36,7 @@ const defaults: Omit<SettingsState, "hydrate" | "set"> = {
   defaultTier: "med",
   crossfadeMs: 0,
   mbWarningShown: false,
+  ytdlpPath: "yt-dlp",
 };
 
 export const useSettingsStore = create<SettingsState>((set) => ({

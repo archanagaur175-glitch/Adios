@@ -60,23 +60,25 @@ fn pick_entry_returns_none_on_garbage() {
     assert!(pick_entry(r#"{"entries":[]}"#).is_none());
 }
 
-#[test]
-fn health_is_down_when_binary_missing() {
-    let resolver = YtDlpResolver::new(std::path::PathBuf::from("definitely-not-ytdlp-404"));
-    // now_or_never: the ready-future resolves synchronously.
-    let health = futures::FutureExt::now_or_never(resolver.health()).unwrap();
+#[tokio::test]
+async fn health_is_down_when_binary_missing() {
+    let resolver = YtDlpResolver::new(crate::resolver::ytdlp::bin_handle(
+        std::path::PathBuf::from("definitely-not-ytdlp-404"),
+    ));
+    let health = resolver.health().await;
     assert_eq!(health.status, HealthStatus::Down);
 }
 
 /// Manual spike: real YouTube resolve through the sidecar (network required).
 /// Run: `cargo test spike_resolve -- --ignored --nocapture`
-#[test]
+#[tokio::test]
 #[ignore]
-fn spike_resolve_real_query() {
+async fn spike_resolve_real_query() {
     let bin = std::env::var("ADIOS_YTDLP").unwrap_or_else(|_| "yt-dlp".to_owned());
-    let resolver = YtDlpResolver::new(std::path::PathBuf::from(bin));
+    let resolver =
+        YtDlpResolver::new(crate::resolver::ytdlp::bin_handle(std::path::PathBuf::from(bin)));
     let q = query("Arijit Singh", "Apna Bana Le");
-    let result = futures::FutureExt::now_or_never(resolver.resolve(&q)).unwrap();
+    let result = resolver.resolve(&q).await;
     let ok = result.is_ok();
     match result {
         Ok(c) => println!(

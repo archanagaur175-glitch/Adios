@@ -2,10 +2,14 @@ pub mod cache;
 pub mod handlers;
 pub mod proxy;
 pub mod range;
+pub mod reresolve;
 pub mod stream;
+pub mod tee;
 
 #[cfg(test)]
 mod proxy_tests;
+#[cfg(test)]
+mod reresolve_tests;
 #[cfg(test)]
 mod test_util;
 #[cfg(test)]
@@ -59,6 +63,8 @@ impl LoopbackServer {
 pub fn start(
     db: crate::resolver::SharedDb,
     cache_dir: std::path::PathBuf,
+    chain: crate::resolver::SharedChain,
+    table: crate::resolver::SharedTable,
 ) -> std::io::Result<LoopbackServer> {
     let token = uuid::Uuid::new_v4().to_string();
     let (ready_tx, ready_rx) = mpsc::channel::<u16>();
@@ -82,6 +88,8 @@ pub fn start(
                 client: reqwest::Client::new(),
                 db,
                 cache_dir,
+                chain,
+                table,
             });
             ready_tx.send(port).ok();
             let serve = axum::serve(listener, router(state))

@@ -20,13 +20,34 @@ pub fn test_start() -> (
     crate::resolver::SharedDb,
     std::path::PathBuf,
 ) {
+    test_start_with(
+        crate::resolver::ResolverChain::new(vec![]),
+        crate::resolver::ResolutionTable::new(),
+    )
+}
+
+/// Same, but with a caller-supplied chain + resolution table (P4.4 tests).
+pub fn test_start_with(
+    chain: crate::resolver::ResolverChain,
+    table: crate::resolver::ResolutionTable,
+) -> (
+    super::LoopbackServer,
+    crate::resolver::SharedDb,
+    std::path::PathBuf,
+) {
     let conn = crate::db::open_memory().expect("open memory db");
     let db = crate::db::DbState::new(conn).shared();
     let cache_dir = std::env::temp_dir()
         .join("adios-server-tests")
         .join(format!("cache-{}", uuid::Uuid::new_v4()));
     std::fs::create_dir_all(&cache_dir).unwrap();
-    let server = super::start(db.clone(), cache_dir.clone()).expect("start");
+    let server = super::start(
+        db.clone(),
+        cache_dir.clone(),
+        std::sync::Arc::new(chain),
+        std::sync::Arc::new(table),
+    )
+    .expect("start");
     (server, db, cache_dir)
 }
 

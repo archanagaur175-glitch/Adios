@@ -1,9 +1,13 @@
-//! Remote proxy streaming (P4.3 / architecture §3.2).
-//! Remote URL → reqwest → client; full responses are tee'd to the disk cache
-//! via temp→rename and indexed in `cache_index`; Range requests forward
-//! upstream and are never cached (partial files).
+//! Remote proxy streaming (P4.3 / architecture §3.2 + P4.4 re-resolve).
+//! Remote URL → reqwest → client; full responses are tee'd to the disk
+//! cache via temp→rename and indexed in `cache_index`; Range requests
+//! forward upstream and are never cached (partial files).
+//!
+//! P4.4: upstream 401/403/404/410 (expired googlevideo URL) triggers
+//! exactly ONE re-resolve through the chain (`reresolve.rs`) before the
+//! status is passed through.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use axum::body::Body;
 use axum::http::header::{ACCEPT_RANGES, CONTENT_LENGTH, CONTENT_RANGE, CONTENT_TYPE};
@@ -11,24 +15,26 @@ use axum::http::{HeaderValue, StatusCode};
 use axum::response::Response;
 use bytes::Bytes;
 
-use crate::resolver::SharedDb;
-use crate::server::cache::{cache_index_get, cache_index_put, cache_index_touch, cache_path_for_url};
+use crate::server::handlers::ServerState;
+use crate::server::reresolve::{re_resolve_once, ReResolved};
+use crate::server::tee::{tee_body, tee_open};
+
+/// Statuses that mean "expired/forbidden upstream URL" (re-resolve once).
+const EXPIRED_STATUSES: [u16; 4] = [401, 403, 404, 410];
 
 /// Serve a remote URL: disk-cache fast path, else stream upstream (tee on full).
-pub async fn remote_response(
-    db: &SharedDb,
-    cache_dir: &Path,
-    client: &reqwest::Client,
-    url: &str,
-    range_header: Option<&str>,
-) -> Response {
+pub async fn remote_response(state: &ServerState, url: &str, range_header: Option<&str>) -> Response {
     // Fast path: fully cached already.
-    let cached = db.lock().ok().and_then(|conn| cache_index_get(&conn, url));
+    let cached = state
+        .db
+        .lock()
+        .ok()
+        .and_then(|conn| crate::server::cache::cache_index_get(&conn, url));
     if let Some(row) = cached {
         let path = PathBuf::from(&row.local_path);
         if tokio::fs::metadata(&path).await.is_ok() {
-            if let Ok(conn) = db.lock() {
-                let _ = cache_index_touch(&conn, url);
+            if let Ok(conn) = state.db.lock() {
+                let _ = crate::server::cache::cache_index_touch(&conn, url);
             }
             let len = row.bytes as u64;
             return match crate::server::range::parse_range(range_header, len) {
@@ -41,7 +47,7 @@ pub async fn remote_response(
         }
     }
 
-    let mut req = client.get(url);
+    let mut req = state.client.get(url);
     if let Some(range) = range_header {
         req = req.header(axum::http::header::RANGE, range);
     }
@@ -51,6 +57,19 @@ pub async fn remote_response(
     };
     let status = upstream.status();
     if !status.is_success() {
+        if EXPIRED_STATUSES.contains(&status.as_u16()) {
+            match re_resolve_once(state, url).await {
+                Some(ReResolved::Url(new_url)) if new_url != url => {
+                    println!("[proxy] {url} -> {new_url} (single re-resolve)");
+                    return Box::pin(remote_response(state, &new_url, range_header)).await;
+                }
+                Some(ReResolved::Path(path)) => {
+                    println!("[proxy] {url} -> local {} (single re-resolve)", path.display());
+                    return crate::server::handlers::path_response(&path, range_header).await;
+                }
+                _ => {}
+            }
+        }
         return plain(status, format!("upstream status {status}"));
     }
 
@@ -66,27 +85,9 @@ pub async fn remote_response(
     let content_range = upstream.headers().get(CONTENT_RANGE).cloned();
 
     let body = if range_header.is_none() {
-        // The cache dir may not exist yet (fresh install).
-        let _ = tokio::fs::create_dir_all(cache_dir).await;
-        let temp = cache_dir.join(format!(
-            ".part-{}-{}",
-            crate::resolver::fnv1a_hex(url),
-            uuid::Uuid::new_v4()
-        ));
-        let final_path = cache_path_for_url(cache_dir, url, &mime);
-        let file = tokio::fs::File::create(&temp).await.ok();
-        let tee = Tee {
-            resp: upstream,
-            file,
-            temp,
-            final_path,
-            db: db.clone(),
-            url: url.to_owned(),
-            mime,
-            written: 0,
-            expected: content_length,
-        };
-        Body::from_stream(futures::stream::unfold(tee, step_tee))
+        let tee = tee_open(&state.cache_dir, state.db.clone(), url, &mime, upstream, content_length)
+            .await;
+        tee_body(tee)
     } else {
         let stream = futures::stream::unfold(upstream, |mut resp| async move {
             match resp.chunk().await {
@@ -125,72 +126,4 @@ fn range_not_satisfiable(len: u64) -> Response {
         HeaderValue::from_str(&format!("bytes */{len}")).unwrap(),
     );
     res
-}
-
-// ---------- tee: client body + disk cache ----------
-
-struct Tee {
-    resp: reqwest::Response,
-    file: Option<tokio::fs::File>,
-    temp: PathBuf,
-    final_path: PathBuf,
-    db: SharedDb,
-    url: String,
-    mime: String,
-    written: u64,
-    expected: Option<u64>,
-}
-
-async fn step_tee(mut tee: Tee) -> Option<(Result<Bytes, std::io::Error>, Tee)> {
-    match tee.resp.chunk().await {
-        Ok(Some(chunk)) => {
-            if let Some(file) = tee.file.as_mut() {
-                if tokio::io::AsyncWriteExt::write_all(file, &chunk)
-                    .await
-                    .is_err()
-                {
-                    tee.file = None; // disk full etc. — keep streaming to client
-                }
-            }
-            tee.written += chunk.len() as u64;
-            // Finalize as soon as the last expected byte lands: the client
-            // resolves at content-length, before the stream's final None poll.
-            if tee.expected.is_some_and(|exp| tee.written >= exp) {
-                finalize_tee(&mut tee).await;
-            }
-            Some((Ok(chunk), tee))
-        }
-        Ok(None) => {
-            finalize_tee(&mut tee).await;
-            None
-        }
-        Err(_) => {
-            // Upstream died mid-stream: drop the partial temp file.
-            if let Some(mut file) = tee.file.take() {
-                let _ = tokio::io::AsyncWriteExt::shutdown(&mut file).await;
-            }
-            let _ = tokio::fs::remove_file(&tee.temp).await;
-            None
-        }
-    }
-}
-
-/// Complete a full download: flush, temp→rename, index in `cache_index`.
-/// Idempotent — the file handle is taken on the first call.
-async fn finalize_tee(tee: &mut Tee) {
-    let Some(mut file) = tee.file.take() else {
-        return;
-    };
-    let _ = tokio::io::AsyncWriteExt::flush(&mut file).await;
-    let _ = tokio::io::AsyncWriteExt::shutdown(&mut file).await;
-    if tokio::fs::rename(&tee.temp, &tee.final_path).await.is_err() {
-        let _ = tokio::fs::remove_file(&tee.temp).await;
-        return;
-    }
-    // One INSERT — negligible cost; keep it inline so the index row exists
-    // as soon as the rename lands (no spawn_blocking race with readers).
-    if let Ok(conn) = tee.db.lock() {
-        let path = tee.final_path.to_string_lossy();
-        let _ = cache_index_put(&conn, &tee.url, &path, Some(&tee.mime), tee.written);
-    }
 }

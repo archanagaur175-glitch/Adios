@@ -26,8 +26,25 @@ pub fn run() {
             app.manage(db_state);
             println!("[db] opened at {}", data_dir.join("adios.db").display());
 
-            // Resolver chain (Invariant 2): LocalFile → Cache → yt-dlp
-            // (piped/Invidious arrives in P4.4; binary path setting in P4.4).
+            // Resolver chain (Invariant 2): LocalFile → Cache → yt-dlp →
+            // Piped/Invidious. yt-dlp binary: env override > setting > PATH.
+            let ytdlp_path = std::env::var("ADIOS_YTDLP")
+                .ok()
+                .or_else(|| {
+                    shared_db.lock().ok().and_then(|conn| {
+                        conn.query_row(
+                            "SELECT value_json FROM settings WHERE key = 'ytdlpPath'",
+                            [],
+                            |row| row.get::<_, String>(0),
+                        )
+                        .ok()
+                    }).and_then(|raw| serde_json::from_str::<String>(&raw).ok())
+                })
+                .map(std::path::PathBuf::from)
+                .unwrap_or_else(|| std::path::PathBuf::from("yt-dlp"));
+            let bin = resolver::ytdlp::bin_handle(ytdlp_path);
+            app.manage(bin.clone());
+
             let cache_dir = data_dir.join("cache");
             let chain = std::sync::Arc::new(resolver::ResolverChain::new(vec![
                 std::sync::Arc::new(resolver::local::LocalFileResolver::new(shared_db.clone())),
@@ -35,13 +52,16 @@ pub fn run() {
                     shared_db.clone(),
                     cache_dir.clone(),
                 )),
-                std::sync::Arc::new(resolver::ytdlp::YtDlpResolver::new(
-                    std::path::PathBuf::from("yt-dlp"),
-                )),
+                std::sync::Arc::new(resolver::ytdlp::YtDlpResolver::new(bin)),
+                std::sync::Arc::new(resolver::piped::PipedResolver::new(shared_db.clone())),
             ]));
-            app.manage(chain);
+            app.manage(chain.clone());
+            // Resolution table powers the single re-resolve on URL expiry.
+            let table = std::sync::Arc::new(resolver::ResolutionTable::new());
+            app.manage(table.clone());
 
-            let loopback = server::start(shared_db, cache_dir).expect("loopback server");
+            let loopback =
+                server::start(shared_db, cache_dir, chain, table).expect("loopback server");
             println!("[server] listening on {}", loopback.base_url());
             app.manage(commands::server::ServerInfo {
                 port: loopback.port,
@@ -85,7 +105,11 @@ pub fn run() {
             commands::library::insert_track,
             commands::library::delete_track,
             commands::server::server_info,
-            commands::scan::scan_folder
+            commands::scan::scan_folder,
+            commands::resolver::resolve_query,
+            commands::resolver::resolver_health,
+            commands::resolver::test_instance,
+            commands::ytdlp::update_ytdlp
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

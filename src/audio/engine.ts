@@ -1,5 +1,5 @@
 import { emit } from "@tauri-apps/api/event";
-import { buildMediaUrl, inTauri } from "@/lib/api";
+import { inTauri, trackMediaUrl } from "@/lib/api";
 import { useLibraryStore } from "@/store/libraryStore";
 import { usePlayerStore } from "@/store/playerStore";
 import { CrossfadeController, makeSwapAction, nextTrackUrl } from "./crossfade";
@@ -11,6 +11,7 @@ import {
   setElementGain,
   setMasterVolume,
 } from "./graph";
+import { recoverMediaError } from "./reresolve";
 
 /** Two <audio> A/B elements (crossOrigin="anonymous") on the shared graph.
     Store is the source of truth. Gapless: preload next on the inactive
@@ -97,8 +98,12 @@ class PlayerEngine {
       maybeBeginFade: () => void this.cross?.maybeBegin(),
       onError: (el: HTMLAudioElement) => {
         console.error("[engine] media error:", el.error?.message ?? "unknown");
-        usePlayerStore.getState().setPlaying(false);
         if (inTauri) void emit("smoke", { msg: `media error: ${el.error?.message}` });
+        if (this.suppress) return;
+        void recoverMediaError(el, {
+          isCurrent: () => el === this.currentEl(),
+          resume: () => this.playEl(el),
+        }).then((ok) => { if (!ok) usePlayerStore.getState().setPlaying(false); });
       },
     };
   }
@@ -114,9 +119,7 @@ class PlayerEngine {
     const track = useLibraryStore
       .getState()
       .tracks.find((t) => t.id === store.currentTrackId);
-    const url = track?.path
-      ? await buildMediaUrl(track.path)
-      : (track?.url ?? null);
+    const url = track ? await trackMediaUrl(track) : null;
     if (gen !== this.loadGen) return;
     if (!url) {
       els.forEach((el) => {

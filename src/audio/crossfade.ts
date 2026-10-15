@@ -2,7 +2,7 @@
     The controller resolves the next track, starts it on the inactive
     element, ramps gains with cosine/sine curves, then calls `swap` once
     the fade completes. `crossfadeMs = 0` never enters this path. */
-import { buildMediaUrl } from "@/lib/api";
+import { trackMediaUrl } from "@/lib/api";
 import { useLibraryStore } from "@/store/libraryStore";
 import { usePlayerStore } from "@/store/playerStore";
 import { peekGraph, attachElement } from "./graph";
@@ -48,7 +48,8 @@ export function settleGains(ctx: AudioContext, from: GainNode, to: GainNode): vo
   to.gain.setValueAtTime(1, now);
 }
 
-/** Resolve the URL of the upcoming track (shared by preload + fade). */
+/** Resolve the URL of the upcoming track (shared by preload + fade).
+    Local files AND proxied stream tracks both go via the loopback server. */
 export async function nextTrackUrl(): Promise<string | null> {
   const store = usePlayerStore.getState();
   const nextId = store.peekNextId();
@@ -56,8 +57,8 @@ export async function nextTrackUrl(): Promise<string | null> {
   const track = useLibraryStore
     .getState()
     .tracks.find((t) => t.id === nextId);
-  if (!track?.path) return null;
-  return buildMediaUrl(track.path);
+  if (!track) return null;
+  return trackMediaUrl(track);
 }
 
 /** Advance the queue after a completed fade; stop at queue end. */

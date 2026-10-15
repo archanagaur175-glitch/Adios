@@ -105,6 +105,27 @@ export async function buildMediaUrl(path: string): Promise<string | null> {
   return `${info.baseUrl}/media/${info.token}?path=${encodeURIComponent(path)}`;
 }
 
+/** Loopback URL for a remote stream URL (proxied + disk-cached, P4.3/P4.4). */
+export async function buildRemoteMediaUrl(url: string): Promise<string | null> {
+  const info = await getServerInfo();
+  if (!info) return null;
+  return `${info.baseUrl}/media/${info.token}?url=${encodeURIComponent(url)}`;
+}
+
+/** Media URL for a track — local path or remote URL, both via the
+    loopback server (Invariant 1: ALL audio goes through the proxy). */
+export async function trackMediaUrl(
+  track: Pick<Track, "path" | "url">,
+): Promise<string | null> {
+  if (track.path) return buildMediaUrl(track.path);
+  if (track.url) {
+    return track.url.startsWith("http")
+      ? buildRemoteMediaUrl(track.url)
+      : buildMediaUrl(track.url);
+  }
+  return null;
+}
+
 // ---------- Scan ----------
 
 /** Summary returned by one folder scan (mirrors Rust ScanSummary). */

@@ -1,7 +1,9 @@
 //! Cache resolver: serves queries previously resolved by yt-dlp/piped from
 //! meta_cache (query → URL) + cache_index (URL → disk file). P4.1 provides
-//! the read path; cache_index writes landed in P4.3 (server/proxy tee), the
-//! meta_cache resolution write-back arrives with P4.4.
+//! the read path; cache_index writes landed in P4.3 (server/proxy tee);
+//! P4.4 adds the meta_cache write-back (`put_resolution`) and serves
+//! payload-only resolutions (no disk file) as their remote URL — expiry is
+//! then handled once at the proxy via the resolution table.
 
 use std::future::ready;
 use std::path::PathBuf;
@@ -9,18 +11,27 @@ use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use rusqlite::Connection;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::{fnv1a_hex, normalize_key_part};
 use super::{BoxFuture, Candidate, Health, HealthStatus, Query, ResolveError, Resolver, SharedDb};
 
 const KIND_RESOLUTION: &str = "resolution";
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct ResolutionPayload {
     url: String,
     mime: Option<String>,
     expires_at: Option<String>,
+    #[serde(default)]
+    source: Option<String>,
+    #[serde(default)]
+    confidence: Option<f32>,
+}
+
+/// Remote transport URLs only — local paths are never write-back cached.
+pub fn is_remote_url(value: &str) -> bool {
+    value.starts_with("http://") || value.starts_with("https://")
 }
 
 pub struct CacheResolver {
@@ -42,6 +53,43 @@ pub fn cache_key(query: &Query) -> String {
         .map(|ms| (ms / 1000).to_string())
         .unwrap_or_default();
     fnv1a_hex(&format!("{artist}|{title}|{album}|{duration_secs}"))
+}
+
+/// Write-back after a remote resolution (commands/resolver.rs + proxy
+/// re-resolve). Upserts the query-keyed payload; local paths never land here.
+pub fn put_resolution(db: &SharedDb, query: &Query, candidate: &Candidate) -> Result<(), String> {
+    if !is_remote_url(&candidate.url_or_path) {
+        return Ok(());
+    }
+    let payload = serde_json::to_string(&ResolutionPayload {
+        url: candidate.url_or_path.clone(),
+        mime: candidate.mime.clone(),
+        expires_at: candidate.expires_at.clone(),
+        source: Some(candidate.source.clone()),
+        confidence: Some(candidate.confidence),
+    })
+    .map_err(|e| e.to_string())?;
+    let conn = db.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT INTO meta_cache (cache_key, kind, payload_json) VALUES (?1, ?2, ?3)
+         ON CONFLICT(cache_key) DO UPDATE SET
+           payload_json = excluded.payload_json, fetched_at = datetime('now')",
+        rusqlite::params![cache_key(query), KIND_RESOLUTION, payload],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Drop a stale payload before re-resolving so the chain cannot serve the
+/// very URL that just failed (proxy 403 path, P4.4).
+pub fn invalidate_resolution(db: &SharedDb, query: &Query) -> Result<(), String> {
+    let conn = db.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "DELETE FROM meta_cache WHERE cache_key = ?1 AND kind = ?2",
+        rusqlite::params![cache_key(query), KIND_RESOLUTION],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 impl CacheResolver {
@@ -81,13 +129,27 @@ impl CacheResolver {
         let payload: ResolutionPayload = serde_json::from_str(&payload_json)
             .map_err(|e| ResolveError::Internal(format!("bad resolution payload: {e}")))?;
 
+        if !is_remote_url(&payload.url) {
+            return Err(ResolveError::NotFound);
+        }
+
         let indexed: (String, Option<String>) = match conn.query_row(
             "SELECT local_path, mime FROM cache_index WHERE url = ?1",
             [&payload.url],
             |row| Ok((row.get(0)?, row.get(1)?)),
         ) {
             Ok(row) => row,
-            Err(rusqlite::Error::QueryReturnedNoRows) => return Err(ResolveError::NotFound),
+            // P4.4: resolution known but never downloaded — serve the
+            // remote URL itself; the proxy handles expiry (re-resolve once).
+            Err(rusqlite::Error::QueryReturnedNoRows) => {
+                return Ok(Candidate {
+                    url_or_path: payload.url,
+                    mime: payload.mime,
+                    expires_at: payload.expires_at,
+                    source: payload.source.unwrap_or_else(|| "cache".to_owned()),
+                    confidence: payload.confidence.unwrap_or(1.0),
+                });
+            }
             Err(e) => return Err(ResolveError::Database(e.to_string())),
         };
         let (local_path, index_mime) = indexed;

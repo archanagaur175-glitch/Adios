@@ -3,6 +3,7 @@ import { HashRouter, Route, Routes } from "react-router";
 import { initMediaIntegration } from "@/audio/mediaSession";
 import { initPlayerEngine } from "@/audio/engine";
 import { runSmokeIfEnabled } from "@/audio/smoke";
+import { ToastHost } from "@/components/common/ToastHost";
 import { inTauri, listTracks } from "@/lib/api";
 import { useLibraryStore } from "@/store/libraryStore";
 import { AppShell } from "@/routes/AppShell";
@@ -30,6 +31,7 @@ function App() {
 
   return (
     <HashRouter>
+      <ToastHost />
       <Routes>
         <Route element={<AppShell />}>
           <Route index element={<HomePage />} />
