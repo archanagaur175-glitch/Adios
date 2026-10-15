@@ -119,6 +119,21 @@ pub fn track_insert(conn: &Connection, track: &NewTrack) -> Result<i64> {
     Ok(conn.last_insert_rowid())
 }
 
+/// True when a track with this file path already exists.
+pub fn track_exists(conn: &Connection, path: &str) -> Result<bool> {
+    let mut stmt = conn.prepare("SELECT 1 FROM tracks WHERE path = ?1")?;
+    let mut rows = stmt.query_map([path], |_| Ok(()))?;
+    Ok(rows.next().is_some())
+}
+
+/// Set the cover file path for a track (written by the folder scan / CAA fetch).
+pub fn track_set_cover(conn: &Connection, id: i64, cover_path: &str) -> Result<usize> {
+    conn.execute(
+        "UPDATE tracks SET cover_path = ?2 WHERE id = ?1",
+        params![id, cover_path],
+    )
+}
+
 pub fn track_get(conn: &Connection, id: i64) -> Result<Option<TrackRow>> {
     let sql = format!("SELECT {TRACK_COLUMNS} FROM tracks WHERE id = ?1");
     let mut stmt = conn.prepare(&sql)?;

@@ -1,6 +1,6 @@
 # Adios — Build Plan
 
-STATUS: APPROVED (2026-10-15) · P3 · Step 3.1 · IN PROGRESS
+STATUS: APPROVED (2026-10-15) · P3 · Step 3.3 · IN PROGRESS
 
 ## DECISIONS
 - **D1 MSVC Build Tools**: missing (verified: no cl.exe). Install REQUIRED in P0.1 after approval: `winget install Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"` (UAC + large download; reopen terminal after). If install fails: STOP and ask. No GNU-toolchain workaround.
@@ -66,8 +66,8 @@ STATUS: APPROVED (2026-10-15) · P3 · Step 3.1 · IN PROGRESS
 - **Deps**: P2.
 - **Risks**: Range implementation bugs; analyser silence if CORS/token wrong; lofty tag variance across formats.
 - **Gate**: scan folder → play/seek/next/prev works; analyser returns non-zero data (logged); wrong-token/Host → 403 test passes; crossfade listening test logged (D3).
-- [ ] **3.1 Loopback server skeleton: token + Host validation + CORS + Range (local files)** — axum on 127.0.0.1:0; `server_info` invoke. Tests: valid request 200, Range → 206 with correct bytes, wrong token → 403, wrong Host → 403 (R10). Verify: `cargo test`.
-- [ ] **3.2 Folder picker + scan with lofty (tags + embedded art → covers/)** — Verify: `cargo test` (scan fixture with sample file if available, else mock lofty read); manual scan of a real folder logs N tracks.
+- [x] **3.1 Loopback server skeleton: token + Host validation + CORS + Range (local files)** — axum on 127.0.0.1:0; `server_info` invoke. Tests: valid request 200, Range → 206 with correct bytes, wrong token → 403, wrong Host → 403 (R10). Verify: `cargo test`.
+- [x] **3.2 Folder picker + scan with lofty (tags + embedded art → covers/)** — `scan_folder` command + `tauri-plugin-dialog` folder picker + Library page Scan button; embedded Jpg/Png art → `covers/<sanitized-stem>-<fnv1a>.jpg`. Tests: recursive/hidden/extension filter, WAV fixture via real lofty read (duration+fallbacks), dup skip, error collection. Verify: `cargo test`; live scan of real MP3s logs N tracks.
 - [ ] **3.3 PlayerEngine A/B + Web Audio graph + queue + player bar (seek/volume)** — `<audio crossOrigin="anonymous">` → loopback URLs. Verify: tsc/lint; manual play/seek/next/prev; log AnalyserNode RMS > 0 while playing.
 - [ ] **3.4 Media Session + global media keys + keyboard shortcuts + D3 crossfade listening test** — Verify: tsc/lint; manual media-key test; log listening-test result and final crossfade default.
 
@@ -167,9 +167,21 @@ P10 (optional, NOT planned): 3D layer behind existing VisualizerHost interface.
 | 2026-10-15 | `npm run tauri dev` smoke (P2.2) | `[db] opened at C:\Users\archa\AppData\Roaming\com.nullbrain.adios\adios.db`, db+WAL files created, window title Adios — **P2.2 PASS**; docs storage path corrected to Tauri identifier-based dir |
 | 2026-10-15 | `cargo test` (P2.3: + track_crud_roundtrip, tracks_all_orders_by_artist_then_title) | **8 passed, 0 failed**; `cargo build` 0 warnings; tsc + lint clean; headless render OK — **P2.3 PASS** |
 | 2026-10-15 | P2 gate review | migrations 8/8 tests ✓ settings roundtrip ✓ CRUD roundtrip ✓ typed api.ts ✓ tsc/lint clean ✓ — **P2 GATE PASS** |
+| 2026-10-15 | deps: `cargo add axum tokio futures uuid percent-encoding bytes reqwest --no-default-features --features rustls,stream` (D13) | axum 0.8.9, tokio 1.53.3, futures 0.3.34, uuid 1.28 (v4), percent-encoding 2.3.2, bytes 1.12.1, **reqwest 0.13.5** (note: 0.13 renamed features — `rustls`, not `rustls-tls`) |
+| 2026-10-15 | `cargo test` (P3.1 gate) | **15 passed, 0 failed** — 8 db + 7 server (200+CORS, 206 slice bytes exact, wrong-token 403, wrong-Host 403, 404, disallowed-origin no ACAO, 416) ; 0 warnings |
+| 2026-10-15 | live app smoke: dev window + `curl` against real server | `[server] listening on http://127.0.0.1:57629`; live wrong-token → 403, unknown route → 404 — **P3.1 PASS** |
+| 2026-10-15 | `cargo add lofty tauri-plugin-dialog` + `npm i @tauri-apps/plugin-dialog` | lofty 0.25.4, tauri-plugin-dialog 2.8.3 (JS `open({directory:true})` → `string\|null`, permission `dialog:default` verified in crate permissions dir) |
+| 2026-10-15 | lofty 0.25.4 API verified from installed source (never invented) | `read_from_path` → `TaggedFile`; `AudioFile::properties().duration()`; `TaggedFileExt::primary_tag/first_tag`; `Accessor::{title,artist,album,track,disk,date}`; `Tag::pictures()` → `mime_type()/data()` (MimeType::Jpeg/Png) |
+| 2026-10-15 | `cargo test` (P3.2 gate) | **20 passed, 0 failed** — 8 db + 7 server + 5 scan (collect filter/hidden/case, WAV fixture: duration 500ms + stem/artist fallbacks, dup `added=1→skipped=1`, error collection, cover-name determinism) ; 0 warnings |
+| 2026-10-15 | `npx tsc --noEmit; npm run lint` | both clean (Library.tsx Scan button + track list, api.ts scanFolder, format.ts) |
+| 2026-10-15 | dev smoke `ADIOS_AUTO_SCAN=<fixture with 3 real MP3s>` (auto-scan harness, debug-only) | `[scan] folder=... added=3 skipped=0 failed=0 in 49ms` + `[smoke] auto-scan done` — **real lofty tag read OK** |
+| 2026-10-15 | covers/ inspection after live scan | `Apna_Bana_Le-23c1b777f0bc1114.jpg` (49 KB) + `Back_to_Friends-490191272d4d0e78.jpg` (51 KB) written from embedded art (3rd file had none) |
+| 2026-10-15 | re-scan same fixture (duplicate handling, fresh app run) | `[scan] ... added=0 skipped=3 failed=0 in 3ms` — DB persistence + ON CONFLICT path verified live |
+| 2026-10-15 | headless DOM `http://localhost:1420/#/library` | Library page renders, `Scan folder` button present, browser-mode gate message correct (invoke disabled outside Tauri) |
+| 2026-10-15 | `acl-manifests.json` check + file-length audit | `dialog` permission registered ✓; scan/mod 153, tags 91, tests 109, cmd 33, Library 90, api 93, format 11 — all ≤200 — **P3.2 PASS** |
 
 ## OPEN QUESTIONS
 1. None blocking. (D1–D4 decided by user; spike findings in P4.2 may raise a PO-token question — handled by STOP rule.)
 
 ## NEXT ACTION
-Run P3.1: axum loopback server skeleton (ephemeral port, session token, Host validation, CORS, Range for local files) + tests for 200/206/403 cases; verify with `cargo test`.
+Run P3.3: PlayerEngine (two `<audio crossOrigin="anonymous">`, A/B swap) + Web Audio graph + queue store + player bar (seek/volume); wire loopback URLs from `server_info`; verify tsc/lint + manual play/seek/next/prev and log AnalyserNode RMS > 0 while playing.

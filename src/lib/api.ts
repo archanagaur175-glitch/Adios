@@ -73,3 +73,21 @@ export async function deleteTrack(id: number): Promise<number> {
   if (!inTauri) return 0;
   return invoke<number>("delete_track", { id });
 }
+
+// ---------- Scan ----------
+
+/** Summary returned by one folder scan (mirrors Rust ScanSummary). */
+export interface ScanSummary {
+  folder: string;
+  added: number;
+  skipped: number;
+  failed: number;
+  errors: string[];
+  elapsedMs: number;
+}
+
+/** Scan a folder for audio files and import them. Returns null outside Tauri. */
+export async function scanFolder(folder: string): Promise<ScanSummary | null> {
+  if (!inTauri) return null;
+  return invoke<ScanSummary>("scan_folder", { folder });
+}
