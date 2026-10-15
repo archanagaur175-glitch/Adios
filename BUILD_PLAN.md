@@ -1,6 +1,6 @@
 # Adios — Build Plan
 
-STATUS: APPROVED (2026-10-15) · P2 · Step 2.1 · IN PROGRESS
+STATUS: APPROVED (2026-10-15) · P2 · Step 2.2 · IN PROGRESS
 
 ## DECISIONS
 - **D1 MSVC Build Tools**: missing (verified: no cl.exe). Install REQUIRED in P0.1 after approval: `winget install Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"` (UAC + large download; reopen terminal after). If install fails: STOP and ask. No GNU-toolchain workaround.
@@ -57,7 +57,7 @@ STATUS: APPROVED (2026-10-15) · P2 · Step 2.1 · IN PROGRESS
 - **Deps**: P1.
 - **Risks**: FTS5 trigger correctness; migration idempotency.
 - **Gate**: migration tests pass; settings + track CRUD roundtrip; `cargo test` green.
-- [ ] **2.1 rusqlite init + migration runner + schema 001 (tables, FTS5, triggers)** — per docs/ARCHITECTURE.md §3.1. Unit tests: fresh migration, re-run is no-op, FTS insert/update/delete triggers. Verify: `cargo test` in src-tauri.
+- [x] **2.1 rusqlite init + migration runner + schema 001 (tables, FTS5, triggers)** — per docs/ARCHITECTURE.md §3.1. Unit tests: fresh migration, re-run is no-op, FTS insert/update/delete triggers. Verify: `cargo test` in src-tauri.
 - [ ] **2.2 Settings get/set commands + settings store** — Verify: `cargo test` (settings roundtrip); tsc/lint.
 - [ ] **2.3 Library CRUD commands + typed invoke wrappers (`src/lib/api.ts`)** — Verify: `cargo test` (CRUD roundtrip); tsc/lint.
 
@@ -161,9 +161,11 @@ P10 (optional, NOT planned): 3D layer behind existing VisualizerHost interface.
 | 2026-10-15 | `npm install zustand` (D9) | zustand@5.0.15 |
 | 2026-10-15 | `npx tsc --noEmit; npm run lint; npm run build` (P1.4) | all clean — **P1.4 PASS** |
 | 2026-10-15 | P1 gate review | navigable shell (7 routes rendered) ✓ Mica `mica-dark` applied ✓ tokens verified ✓ tsc/lint clean ✓ — **P1 GATE PASS** |
+| 2026-10-15 | `cargo add rusqlite --features bundled` (D5) | rusqlite v0.40.2; verified FTS5: libsqlite3-sys build.rs compiles with `-DSQLITE_ENABLE_FTS5` |
+| 2026-10-15 | `cargo test` (P2.1 gate) | **5 passed, 0 failed** (fresh_migration_creates_all_tables, migration_rerun_is_noop, version_mismatch_skips_reapplied_migration, fts_triggers_track_insert_update_delete, fts_search_matches_title_and_artist) — **P2.1 PASS** |
 
 ## OPEN QUESTIONS
 1. None blocking. (D1–D4 decided by user; spike findings in P4.2 may raise a PO-token question — handled by STOP rule.)
 
 ## NEXT ACTION
-Run P2.1: add rusqlite (bundled, FTS5) to src-tauri, write migration runner + schema 001 + migration unit tests; verify with `cargo test`.
+Run P2.2: settings queries + `get_settings`/`set_setting` commands + open-DB-at-startup State wiring + settings store hydrate via invoke; verify `cargo test` roundtrip + tsc/lint.

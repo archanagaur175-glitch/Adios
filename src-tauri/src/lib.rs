@@ -1,3 +1,4 @@
+mod db;
 mod win;
 
 use tauri::Manager;
