@@ -1,6 +1,6 @@
 # Adios — Build Plan
 
-STATUS: APPROVED (2026-10-15) · P1 · Step 1.4 · IN PROGRESS
+STATUS: APPROVED (2026-10-15) · P2 · Step 2.1 · IN PROGRESS
 
 ## DECISIONS
 - **D1 MSVC Build Tools**: missing (verified: no cl.exe). Install REQUIRED in P0.1 after approval: `winget install Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"` (UAC + large download; reopen terminal after). If install fails: STOP and ask. No GNU-toolchain workaround.
@@ -50,7 +50,7 @@ STATUS: APPROVED (2026-10-15) · P1 · Step 1.4 · IN PROGRESS
 - [x] **1.1 Design tokens + global CSS + custom scrollbar** — tokens per docs/DESIGN.md §3. Verify: `npx tsc --noEmit && npm run lint`; visual check dev window.
 - [x] **1.2 Custom titlebar + window controls + Mica/Acrylic vibrancy** — `vibrancy.rs` + drag region + min/max/close via Tauri window API. Verify: tsc/lint; manual: drag works, controls work, Mica visible (log fallback if not).
 - [x] **1.3 Layout + sidebar + react-router** — AppShell with 5 routes. Verify: `npx tsc --noEmit && npm run lint`; manual nav each route.
-- [ ] **1.4 Zustand stores scaffold + settings persistence wiring** — 5 stores, typed, stubbed. Verify: tsc/lint; store unit smoke test if trivial.
+- [x] **1.4 Zustand stores scaffold + settings persistence wiring** — 5 stores, typed, stubbed. Verify: tsc/lint; store unit smoke test if trivial. (`zustand@5.0.15`; ui/settings stores use `persist` → localStorage until P2.2 swaps to invoke.)
 
 ### P2 SQLite + settings + library models
 - **Modules**: `src-tauri/src/db/mod.rs`, `db/migrations/*`, `db/queries.rs`, `commands/library.rs`, `commands/settings.rs`, `src/lib/api.ts`.
@@ -158,9 +158,12 @@ P10 (optional, NOT planned): 3D layer behind existing VisualizerHost interface.
 | 2026-10-15 | `npm install react-router@7` (D8) | 3 packages, 0 vulnerabilities |
 | 2026-10-15 | headless Edge DOM dump (route render test) | 1st run caught `getCurrentWindow()` throwing outside Tauri → made Titlebar Tauri-guarded; re-run: sidebar/Home/player-bar rendered, no vite errors |
 | 2026-10-15 | headless Edge × 7 routes (`#/`, `#/library`, `#/playlists`, `#/playlists/42`, `#/search`, `#/cached`, `#/settings`) | all rendered `class="page"` — **P1.3 PASS** (tsc + lint clean) |
+| 2026-10-15 | `npm install zustand` (D9) | zustand@5.0.15 |
+| 2026-10-15 | `npx tsc --noEmit; npm run lint; npm run build` (P1.4) | all clean — **P1.4 PASS** |
+| 2026-10-15 | P1 gate review | navigable shell (7 routes rendered) ✓ Mica `mica-dark` applied ✓ tokens verified ✓ tsc/lint clean ✓ — **P1 GATE PASS** |
 
 ## OPEN QUESTIONS
 1. None blocking. (D1–D4 decided by user; spike findings in P4.2 may raise a PO-token question — handled by STOP rule.)
 
 ## NEXT ACTION
-Run P1.4: scaffold the five typed Zustand stores + settings persistence wiring; verify tsc/lint.
+Run P2.1: add rusqlite (bundled, FTS5) to src-tauri, write migration runner + schema 001 + migration unit tests; verify with `cargo test`.
