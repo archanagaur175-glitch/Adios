@@ -26,12 +26,16 @@ pub fn run() {
             app.manage(db_state);
             println!("[db] opened at {}", data_dir.join("adios.db").display());
 
-            // Resolver chain (Invariant 2): LocalFile → Cache → (yt-dlp, piped in P4.2/4.4).
+            // Resolver chain (Invariant 2): LocalFile → Cache → yt-dlp
+            // (piped/Invidious arrives in P4.4; binary path setting in P4.4).
             let chain = std::sync::Arc::new(resolver::ResolverChain::new(vec![
                 std::sync::Arc::new(resolver::local::LocalFileResolver::new(shared_db.clone())),
                 std::sync::Arc::new(resolver::cache::CacheResolver::new(
                     shared_db,
                     data_dir.join("cache"),
+                )),
+                std::sync::Arc::new(resolver::ytdlp::YtDlpResolver::new(
+                    std::path::PathBuf::from("yt-dlp"),
                 )),
             ]));
             app.manage(chain);

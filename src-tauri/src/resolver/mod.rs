@@ -10,12 +10,16 @@
 pub mod cache;
 pub mod local;
 pub mod score;
+pub mod ytdlp;
 
 #[cfg(test)]
 mod tests;
 
 #[cfg(test)]
 mod chain_tests;
+
+#[cfg(test)]
+mod ytdlp_tests;
 
 use std::future::Future;
 use std::pin::Pin;
