@@ -1,6 +1,7 @@
 //! Cache resolver: serves queries previously resolved by yt-dlp/piped from
 //! meta_cache (query → URL) + cache_index (URL → disk file). P4.1 provides
-//! the read path; the write path arrives with P4.2/P4.3.
+//! the read path; cache_index writes landed in P4.3 (server/proxy tee), the
+//! meta_cache resolution write-back arrives with P4.4.
 
 use std::future::ready;
 use std::path::PathBuf;

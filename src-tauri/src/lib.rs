@@ -28,11 +28,12 @@ pub fn run() {
 
             // Resolver chain (Invariant 2): LocalFile → Cache → yt-dlp
             // (piped/Invidious arrives in P4.4; binary path setting in P4.4).
+            let cache_dir = data_dir.join("cache");
             let chain = std::sync::Arc::new(resolver::ResolverChain::new(vec![
                 std::sync::Arc::new(resolver::local::LocalFileResolver::new(shared_db.clone())),
                 std::sync::Arc::new(resolver::cache::CacheResolver::new(
-                    shared_db,
-                    data_dir.join("cache"),
+                    shared_db.clone(),
+                    cache_dir.clone(),
                 )),
                 std::sync::Arc::new(resolver::ytdlp::YtDlpResolver::new(
                     std::path::PathBuf::from("yt-dlp"),
@@ -40,7 +41,7 @@ pub fn run() {
             ]));
             app.manage(chain);
 
-            let loopback = server::start().expect("loopback server");
+            let loopback = server::start(shared_db, cache_dir).expect("loopback server");
             println!("[server] listening on {}", loopback.base_url());
             app.manage(commands::server::ServerInfo {
                 port: loopback.port,

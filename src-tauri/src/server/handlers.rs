@@ -1,3 +1,5 @@
+use crate::resolver::SharedDb;
+use crate::server::proxy::remote_response;
 use crate::server::range::{mime_for_path, parse_range, FileRange};
 use axum::body::Body;
 use axum::extract::{Path, Query, State};
@@ -10,7 +12,7 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{get, options};
 use axum::Router;
 use serde::Deserialize;
-use std::path::PathBuf;
+use std::path::{Path as StdPath, PathBuf};
 use std::sync::Arc;
 
 pub const ALLOWED_ORIGINS: &[&str] = &[
@@ -23,6 +25,9 @@ pub const ALLOWED_ORIGINS: &[&str] = &[
 pub struct ServerState {
     pub token: String,
     pub port: u16,
+    pub client: reqwest::Client,
+    pub db: SharedDb,
+    pub cache_dir: PathBuf,
 }
 
 pub fn router(state: Arc<ServerState>) -> Router {
@@ -33,10 +38,12 @@ pub fn router(state: Arc<ServerState>) -> Router {
 
 #[derive(Deserialize)]
 pub struct MediaQuery {
-    pub path: String,
+    pub path: Option<String>,
+    /// Remote source (proxy + disk cache, P4.3). Mutually exclusive with path.
+    pub url: Option<String>,
 }
 
-/// GET /media/:token?path=<absolute file path>
+/// GET /media/:token?path=<local file> | ?url=<remote URL>
 pub async fn media(
     State(state): State<Arc<ServerState>>,
     Path(token): Path<String>,
@@ -50,14 +57,23 @@ pub async fn media(
     if !host_allowed(&headers, state.port) {
         return with_cors(plain(StatusCode::FORBIDDEN, "invalid host"), origin);
     }
-    let path = PathBuf::from(&query.path);
+    let range_header = headers.get(RANGE).and_then(|v| v.to_str().ok());
+
+    if let Some(url) = query.url.as_deref() {
+        let response =
+            remote_response(&state.db, &state.cache_dir, &state.client, url, range_header).await;
+        return with_cors(response, origin);
+    }
+    let Some(path) = query.path.as_deref() else {
+        return with_cors(plain(StatusCode::BAD_REQUEST, "path or url required"), origin);
+    };
+    let path = PathBuf::from(path);
     let meta = match tokio::fs::metadata(&path).await {
         Ok(meta) if meta.is_file() => meta,
         _ => return with_cors(plain(StatusCode::NOT_FOUND, "not found"), origin),
     };
     let len = meta.len();
 
-    let range_header = headers.get(RANGE).and_then(|v| v.to_str().ok());
     let response = match parse_range(range_header, len) {
         Ok(Some(range)) => file_response(&path, len, Some(range)).await,
         Ok(None) => file_response(&path, len, None).await,
@@ -81,8 +97,8 @@ pub async fn preflight(headers: HeaderMap) -> Response {
     with_cors(res, origin)
 }
 
-async fn file_response(path: &PathBuf, len: u64, range: Option<FileRange>) -> Response {
-    let mime = mime_for_path(path);
+pub(super) async fn file_response(path: &PathBuf, len: u64, range: Option<FileRange>) -> Response {
+    let mime = mime_for_path(StdPath::new(path));
     let (status, start, end) = match range {
         Some(r) => (StatusCode::PARTIAL_CONTENT, r.start, r.end),
         None if len == 0 => (StatusCode::OK, 0, 0),

@@ -1,7 +1,13 @@
+pub mod cache;
 pub mod handlers;
+pub mod proxy;
 pub mod range;
 pub mod stream;
 
+#[cfg(test)]
+mod proxy_tests;
+#[cfg(test)]
+mod test_util;
 #[cfg(test)]
 mod tests;
 
@@ -50,7 +56,10 @@ impl LoopbackServer {
 /// Bind 127.0.0.1:0 and serve until `shutdown()` or process exit.
 /// Blocking (uses an internal thread + runtime) so it can be called
 /// from Tauri's synchronous `setup`.
-pub fn start() -> std::io::Result<LoopbackServer> {
+pub fn start(
+    db: crate::resolver::SharedDb,
+    cache_dir: std::path::PathBuf,
+) -> std::io::Result<LoopbackServer> {
     let token = uuid::Uuid::new_v4().to_string();
     let (ready_tx, ready_rx) = mpsc::channel::<u16>();
     let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
@@ -70,6 +79,9 @@ pub fn start() -> std::io::Result<LoopbackServer> {
             let state = Arc::new(ServerState {
                 token: token_for_server,
                 port,
+                client: reqwest::Client::new(),
+                db,
+                cache_dir,
             });
             ready_tx.send(port).ok();
             let serve = axum::serve(listener, router(state))

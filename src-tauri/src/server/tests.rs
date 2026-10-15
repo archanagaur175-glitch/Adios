@@ -1,38 +1,9 @@
-use super::*;
-use axum::http::header::{HeaderValue, ORIGIN};
-use std::io::Write;
-
-/// One shared temp file per test: 200 KiB of a repeating byte pattern.
-fn temp_file(name: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join("adios-server-tests");
-    std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join(name);
-    let mut file = std::fs::File::create(&path).unwrap();
-    let data: Vec<u8> = (0..200 * 1024).map(|i| (i % 251) as u8).collect();
-    file.write_all(&data).unwrap();
-    path
-}
-
-fn app_origin() -> HeaderValue {
-    HeaderValue::from_static("http://localhost:1420")
-}
-
-fn origin_headers(value: HeaderValue) -> axum::http::HeaderMap {
-    let mut headers = axum::http::HeaderMap::new();
-    headers.insert(ORIGIN, value);
-    headers
-}
-
-fn acao(res: &reqwest::Response) -> Option<String> {
-    res.headers()
-        .get(axum::http::header::ACCESS_CONTROL_ALLOW_ORIGIN)
-        .and_then(|v| v.to_str().ok())
-        .map(str::to_owned)
-}
+use super::test_util::{acao, app_origin, origin_headers, temp_file, test_start};
+use axum::http::header::HeaderValue;
 
 #[tokio::test]
 async fn valid_request_returns_200_full_bytes_with_cors() {
-    let server = start().expect("start");
+    let (server, _db, _dir) = test_start();
     let path = temp_file("full.mp3");
     let url = server.media_url(&path);
 
@@ -53,7 +24,7 @@ async fn valid_request_returns_200_full_bytes_with_cors() {
 
 #[tokio::test]
 async fn range_request_returns_206_with_correct_slice() {
-    let server = start().expect("start");
+    let (server, _db, _dir) = test_start();
     let path = temp_file("range.mp3");
     let url = server.media_url(&path);
 
@@ -76,7 +47,7 @@ async fn range_request_returns_206_with_correct_slice() {
 
 #[tokio::test]
 async fn wrong_token_returns_403() {
-    let server = start().expect("start");
+    let (server, _db, _dir) = test_start();
     let path = temp_file("token.mp3");
     let url = server.media_url(&path).replace(&server.token, "wrong-token");
 
@@ -86,7 +57,7 @@ async fn wrong_token_returns_403() {
 
 #[tokio::test]
 async fn wrong_host_returns_403() {
-    let server = start().expect("start");
+    let (server, _db, _dir) = test_start();
     let path = temp_file("host.mp3");
     let url = server.media_url(&path);
 
@@ -101,7 +72,7 @@ async fn wrong_host_returns_403() {
 
 #[tokio::test]
 async fn missing_file_returns_404() {
-    let server = start().expect("start");
+    let (server, _db, _dir) = test_start();
     let url = server.media_url(std::path::Path::new("C:\\does\\not\\exist\\nope.mp3"));
 
     let res = reqwest::Client::new().get(&url).send().await.expect("request");
@@ -110,7 +81,7 @@ async fn missing_file_returns_404() {
 
 #[tokio::test]
 async fn disallowed_origin_gets_no_cors_header() {
-    let server = start().expect("start");
+    let (server, _db, _dir) = test_start();
     let path = temp_file("origin.mp3");
     let url = server.media_url(&path);
 
@@ -126,7 +97,7 @@ async fn disallowed_origin_gets_no_cors_header() {
 
 #[tokio::test]
 async fn unsatisfiable_range_returns_416() {
-    let server = start().expect("start");
+    let (server, _db, _dir) = test_start();
     let path = temp_file("bad-range.mp3");
     let url = server.media_url(&path);
 
