@@ -1,6 +1,6 @@
 # Adios — Build Plan
 
-STATUS: APPROVED (2026-10-15) · P1 · Step 1.3 · IN PROGRESS
+STATUS: APPROVED (2026-10-15) · P1 · Step 1.4 · IN PROGRESS
 
 ## DECISIONS
 - **D1 MSVC Build Tools**: missing (verified: no cl.exe). Install REQUIRED in P0.1 after approval: `winget install Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"` (UAC + large download; reopen terminal after). If install fails: STOP and ask. No GNU-toolchain workaround.
@@ -10,7 +10,7 @@ STATUS: APPROVED (2026-10-15) · P1 · Step 1.3 · IN PROGRESS
 - **D5 rusqlite (bundled)** over tauri-plugin-sql: full control of FTS5, migrations, meta/lyrics caches, single-DB.
 - **D6 One loopback axum server** for ALL audio (local + remote), per Invariant 1. Tauri asset protocol NOT used for audio.
 - **D7 yt-dlp sidecar**: resolve via `-J` / stream-URL extraction; prefer m4a (AAC) then webm (Opus) audio-only; NO ffmpeg in v1. Spike records EJS/JS-runtime and PO-token (bgutil) findings; Node 22 available. No PO provider in v1 unless spike fails.
-- **D8 react-router v7** — single router choice; AppShell layout route + child routes.
+- **D8 react-router v7** — single router choice; AppShell layout route + child routes. **HashRouter** (not BrowserRouter) so deep routes survive reloads under Tauri's custom protocol.
 - **D9 Zustand** for all stores; engine/visuals are plain TS classes driven by stores, never React state for audio data.
 - **D10 window-vibrancy** Mica with Acrylic fallback; NSIS installer; single-instance plugin; tracing file logs.
 - **D11 No three.js/WebGL this version.** Immersive = layered 2D (Aurora + 2D canvas visualizer). Generic `audioBands` bridge + `VisualizerHost` interface kept so a 3D layer can be added later as P10 (not planned in detail).
@@ -49,7 +49,7 @@ STATUS: APPROVED (2026-10-15) · P1 · Step 1.3 · IN PROGRESS
 - **Gate**: navigable shell; Mica applied (Acrylic fallback); tokens drive colors; tsc + lint clean.
 - [x] **1.1 Design tokens + global CSS + custom scrollbar** — tokens per docs/DESIGN.md §3. Verify: `npx tsc --noEmit && npm run lint`; visual check dev window.
 - [x] **1.2 Custom titlebar + window controls + Mica/Acrylic vibrancy** — `vibrancy.rs` + drag region + min/max/close via Tauri window API. Verify: tsc/lint; manual: drag works, controls work, Mica visible (log fallback if not).
-- [ ] **1.3 Layout + sidebar + react-router** — AppShell with 5 routes. Verify: `npx tsc --noEmit && npm run lint`; manual nav each route.
+- [x] **1.3 Layout + sidebar + react-router** — AppShell with 5 routes. Verify: `npx tsc --noEmit && npm run lint`; manual nav each route.
 - [ ] **1.4 Zustand stores scaffold + settings persistence wiring** — 5 stores, typed, stubbed. Verify: tsc/lint; store unit smoke test if trivial.
 
 ### P2 SQLite + settings + library models
@@ -155,9 +155,12 @@ P10 (optional, NOT planned): 3D layer behind existing VisualizerHost interface.
 | 2026-10-15 | API check: tauri-2.12.4 `src/window/mod.rs`, tauri-utils `WindowEffect` enum, @tauri-apps/api `window.d.ts`, capability schema | EffectsBuilder doc example, variants MicaDark/Mica/Acrylic/Tabbed, minimize/toggleMaximize/close/isMaximized/startDragging all exist; permission ids verified |
 | 2026-10-15 | `npx tsc --noEmit; npm run lint; cargo build` (P1.2) | all clean (after adding `use tauri::Manager`) |
 | 2026-10-15 | `npm run tauri dev` smoke (P1.2 gate) | window PID 20536 title **"Adios"**, log `[vibrancy] applied: mica-dark`, decorations off + 1280×800/min 900×600 — **P1.2 PASS** (drag/controls/visual need user confirmation) |
+| 2026-10-15 | `npm install react-router@7` (D8) | 3 packages, 0 vulnerabilities |
+| 2026-10-15 | headless Edge DOM dump (route render test) | 1st run caught `getCurrentWindow()` throwing outside Tauri → made Titlebar Tauri-guarded; re-run: sidebar/Home/player-bar rendered, no vite errors |
+| 2026-10-15 | headless Edge × 7 routes (`#/`, `#/library`, `#/playlists`, `#/playlists/42`, `#/search`, `#/cached`, `#/settings`) | all rendered `class="page"` — **P1.3 PASS** (tsc + lint clean) |
 
 ## OPEN QUESTIONS
 1. None blocking. (D1–D4 decided by user; spike findings in P4.2 may raise a PO-token question — handled by STOP rule.)
 
 ## NEXT ACTION
-Run P1.3: AppShell layout + collapsible sidebar + react-router routes; verify tsc/lint + manual nav.
+Run P1.4: scaffold the five typed Zustand stores + settings persistence wiring; verify tsc/lint.

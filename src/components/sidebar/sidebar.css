@@ -1,0 +1,88 @@
+/* Collapsible sidebar — 220px expanded, 56px collapsed */
+
+.sidebar {
+  width: 220px;
+  flex: 0 0 220px;
+  padding-top: calc(32px + var(--space-4));
+  transition: width var(--dur-base) var(--ease-out),
+    flex-basis var(--dur-base) var(--ease-out);
+  overflow: hidden;
+}
+
+.sidebar--collapsed {
+  width: 56px;
+  flex-basis: 56px;
+}
+
+.sidebar__toggle {
+  display: block;
+  margin: 0 auto var(--space-4);
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-ctrl);
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--text-16);
+  cursor: pointer;
+}
+
+.sidebar__toggle:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sidebar__list {
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-ctrl);
+  color: var(--text-2);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.sidebar__link:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-1);
+}
+
+.sidebar__link--active {
+  background: color-mix(in oklab, var(--accent) 18%, transparent);
+  color: var(--text-1);
+}
+
+.sidebar__icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sidebar--collapsed .sidebar__label {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar__link {
+    transition: none;
+  }
+}

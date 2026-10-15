@@ -1,0 +1,41 @@
+/* AppShell layout: titlebar offset · sidebar · scrolling main · player bar */
+
+.shell {
+  display: flex;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.shell__main {
+  flex: 1;
+  min-width: 0;
+  padding: calc(32px + var(--space-4)) var(--space-6) calc(72px + var(--space-6));
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.player-bar-placeholder {
+  position: fixed;
+  left: var(--space-4);
+  right: var(--space-4);
+  bottom: var(--space-3);
+  height: 72px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-panel);
+  background: var(--glass-strong);
+  backdrop-filter: blur(var(--blur-glass)) saturate(140%);
+  border: 1px solid var(--stroke);
+  box-shadow: var(--shadow-panel), inset 0 1px 0 var(--stroke-top);
+  color: var(--text-3);
+  font-size: var(--text-12);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 960px;
+}

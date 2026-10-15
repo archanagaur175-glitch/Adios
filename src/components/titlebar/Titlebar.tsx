@@ -3,7 +3,8 @@ import type { ReactElement } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./titlebar.css";
 
-const appWindow = getCurrentWindow();
+const inTauri = "__TAURI_INTERNALS__" in window;
+const appWindow = inTauri ? getCurrentWindow() : null;
 
 type Glyph = "minimize" | "maximize" | "restore" | "close";
 
@@ -20,18 +21,19 @@ const glyphs: Record<Glyph, ReactElement> = {
 };
 
 const actions: { glyph: Glyph; label: string; run: () => Promise<void> }[] = [
-  { glyph: "minimize", label: "Minimize", run: () => appWindow.minimize() },
-  { glyph: "maximize", label: "Maximize", run: () => appWindow.toggleMaximize() },
-  { glyph: "close", label: "Close", run: () => appWindow.close() },
+  { glyph: "minimize", label: "Minimize", run: () => appWindow?.minimize() ?? Promise.resolve() },
+  { glyph: "maximize", label: "Maximize", run: () => appWindow?.toggleMaximize() ?? Promise.resolve() },
+  { glyph: "close", label: "Close", run: () => appWindow?.close() ?? Promise.resolve() },
 ];
 
 export function Titlebar() {
   const [maximized, setMaximized] = useState(false);
 
   useEffect(() => {
+    if (!appWindow) return;
     let cancelled = false;
     const sync = async () => {
-      if (!cancelled) setMaximized(await appWindow.isMaximized());
+      if (!cancelled && appWindow) setMaximized(await appWindow.isMaximized());
     };
     void sync();
     const unlisten = appWindow.onResized(() => void sync());
