@@ -1,6 +1,6 @@
 # Adios — Build Plan
 
-STATUS: APPROVED (2026-10-15) · P0 · Step 0.4 · IN PROGRESS
+STATUS: APPROVED (2026-10-15) · P1 · Step 1.2 · IN PROGRESS
 
 ## DECISIONS
 - **D1 MSVC Build Tools**: missing (verified: no cl.exe). Install REQUIRED in P0.1 after approval: `winget install Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"` (UAC + large download; reopen terminal after). If install fails: STOP and ask. No GNU-toolchain workaround.
@@ -40,14 +40,14 @@ STATUS: APPROVED (2026-10-15) · P0 · Step 0.4 · IN PROGRESS
 - [x] **0.1 Install/verify MSVC Build Tools (D1)** — run winget command (user approves UAC), reopen checks. Done-When: `cl.exe` reachable via `vswhere` + vcvars. Verify: `& "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath` returns a path; then `cmd /c "\"<path>\VC\Auxiliary\Build\vcvars64.bat\" && where cl"` finds cl.exe. (If install fails → STOP, log, ask.)
 - [x] **0.2 Non-interactive scaffold: Tauri v2 + React + Vite + TS strict** — `npm create tauri-app@latest . -- -m npm -t react-ts -y -f --identifier com.nullbrain.adios --tauri-version 2` (flags confirmed via `--help` first; NON-interactive). Done-When: app runs. Verify: `npm install; cargo build` succeeds; `npm run tauri dev` opens window. ⚠️ `-f` wiped uncommitted plan files — restored (see D14).
 - [x] **0.3 Tailwind v4 + ESLint + path aliases** — `npm i -D tailwindcss @tailwindcss/vite eslint typescript-eslint @eslint/js @types/node`; `tailwindcss()` in vite config + `@import "tailwindcss"` in `src/index.css`; `@/*` alias in tsconfig paths + vite resolve; scripts `typecheck`/`lint`. Verify: `npx tsc --noEmit` (clean), `npm run lint` (clean), `npm run build` renders (Tailwind CSS 13.3 kB emitted).
-- [ ] **0.4 Commit plan files + scaffold (chore)** — git repo exists (re-init only if gone); commit BUILD_PLAN.md, docs/, scaffold. Verify: `git status --short` clean; `git log --oneline` has initial commit.
+- [x] **0.4 Commit plan files + scaffold (chore)** — git repo exists (re-init only if gone); commit BUILD_PLAN.md, docs/, scaffold. Verify: `git status --short` clean; `git log --oneline` has initial commit.
 
 ### P1 App shell
 - **Modules**: `src/routes/AppShell.tsx`, `src/components/titlebar/Titlebar.tsx`, `src/components/sidebar/Sidebar.tsx`, `src/store/*Store.ts` (5 stubs), `src/lib/shortcuts.ts`, `src-tauri/src/win/vibrancy.rs`, tokens CSS.
 - **Deps**: P0.
 - **Risks**: Mica + custom titlebar drag regions; maximized-window hit testing.
 - **Gate**: navigable shell; Mica applied (Acrylic fallback); tokens drive colors; tsc + lint clean.
-- [ ] **1.1 Design tokens + global CSS + custom scrollbar** — tokens per docs/DESIGN.md §3. Verify: `npx tsc --noEmit && npm run lint`; visual check dev window.
+- [x] **1.1 Design tokens + global CSS + custom scrollbar** — tokens per docs/DESIGN.md §3. Verify: `npx tsc --noEmit && npm run lint`; visual check dev window.
 - [ ] **1.2 Custom titlebar + window controls + Mica/Acrylic vibrancy** — `vibrancy.rs` + drag region + min/max/close via Tauri window API. Verify: tsc/lint; manual: drag works, controls work, Mica visible (log fallback if not).
 - [ ] **1.3 Layout + sidebar + react-router** — AppShell with 5 routes. Verify: `npx tsc --noEmit && npm run lint`; manual nav each route.
 - [ ] **1.4 Zustand stores scaffold + settings persistence wiring** — 5 stores, typed, stubbed. Verify: tsc/lint; store unit smoke test if trivial.
@@ -148,9 +148,13 @@ P10 (optional, NOT planned): 3D layer behind existing VisualizerHost interface.
 | 2026-10-15 | `npx tsc --noEmit` (after TS6 baseUrl fix: paths without baseUrl) | clean; alias probe `@/lib/...` resolved |
 | 2026-10-15 | `npm run lint` | clean (0 errors, 0 warnings) |
 | 2026-10-15 | `npm run build` (P0.3 gate) | tsc + vite build OK, `dist/assets/index-*.css` 13.33 kB (Tailwind active) — **P0.3 PASS** |
+| 2026-10-15 | `git add -A && git commit` | `7e220d5` "chore: scaffold Tauri v2 + React 19 + Vite + Tailwind v4 + ESLint (P0.2-0.4)" |
+| 2026-10-15 | `npm run tauri dev` smoke (P0 gate) | window up, PID 20868 — **P0 GATE PASS** (killed after) |
+| 2026-10-15 | `npx tsc --noEmit; npm run lint; npm run build` (P1.1) | all clean; dist CSS 14.9 kB |
+| 2026-10-15 | theme-utility probe (temp classes → build → grep dist CSS) | `--color-ink-2` ✓, `#0d0f16` ✓, `.rounded-card{border-radius:var(--radius-card)}` ✓, font-display ✓ — **P1.1 PASS** (probe reverted, tsc clean) |
 
 ## OPEN QUESTIONS
 1. None blocking. (D1–D4 decided by user; spike findings in P4.2 may raise a PO-token question — handled by STOP rule.)
 
 ## NEXT ACTION
-Run P0.4: commit scaffold + configs, then P0 gate smoke (`npm run tauri dev`), then start Phase 1.
+Run P1.2: custom titlebar (drag region + window controls) + Mica/Acrylic vibrancy in Rust; verify tsc/lint + manual window controls.

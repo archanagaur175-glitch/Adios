@@ -1,54 +1,39 @@
 @import "tailwindcss";
+@import "./styles/tokens.css";
+@import "./styles/base.css";
 
-:root {
-  --bg-0: #07080c;
-  --bg-1: #0d0f16;
-  --glass: rgba(22, 25, 36, 0.55);
-  --glass-strong: rgba(22, 25, 36, 0.78);
-  --stroke: rgba(255, 255, 255, 0.08);
-  --stroke-top: rgba(255, 255, 255, 0.16);
-  --text-1: #f4f6fb;
-  --text-2: #a5acbd;
-  --text-3: #6b7287;
-  --danger: #ff5c7a;
-  --accent: #7c5cff;
-  --accent-2: #2de2e6;
-}
+/* Expose design tokens as Tailwind utilities:
+   bg-bg-0 / bg-bg-1 · text-ink-1..3 · bg-accent · text-danger
+   rounded-ctrl|card|panel|pill · font-display · text-12..72
+   Note: values here mirror src/styles/tokens.css — keep in sync. */
+@theme {
+  --color-bg-0: var(--bg-0);
+  --color-bg-1: var(--bg-1);
+  --color-glass: var(--glass);
+  --color-glass-strong: var(--glass-strong);
+  --color-ink-1: var(--text-1);
+  --color-ink-2: var(--text-2);
+  --color-ink-3: var(--text-3);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-danger: var(--danger);
+  --color-stroke: var(--stroke);
 
-html,
-body,
-#root {
-  height: 100%;
-}
+  --font-sans: "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif;
+  --font-display: "Inter Tight", "Space Grotesk", "Segoe UI Variable", sans-serif;
 
-body {
-  margin: 0;
-  background: var(--bg-0);
-  color: var(--text-1);
-  font-family: "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif;
-  font-size: 14px;
-  -webkit-font-smoothing: antialiased;
-  overflow: hidden;
-}
+  --radius-ctrl: 8px;
+  --radius-card: 12px;
+  --radius-panel: 20px;
+  --radius-pill: 999px;
 
-/* Custom 8px scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-}
-::-webkit-scrollbar-thumb:hover,
-::-webkit-scrollbar-thumb:active {
-  background: color-mix(in oklab, var(--accent) 70%, white 10%);
-}
+  --text-12: 12px;
+  --text-14: 14px;
+  --text-16: 16px;
+  --text-20: 20px;
+  --text-28: 28px;
+  --text-44: 44px;
+  --text-72: 72px;
 
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  --ease-ui: cubic-bezier(0.2, 0.8, 0.2, 1);
 }

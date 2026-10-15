@@ -1,0 +1,70 @@
+/* Design tokens — source of truth: docs/DESIGN.md §3 */
+
+:root {
+  color-scheme: dark;
+
+  /* Color */
+  --bg-0: #07080c;
+  --bg-1: #0d0f16;
+  --glass: rgba(22, 25, 36, 0.55);
+  --glass-strong: rgba(22, 25, 36, 0.78);
+  --stroke: rgba(255, 255, 255, 0.08);
+  --stroke-top: rgba(255, 255, 255, 0.16);
+  --text-1: #f4f6fb;
+  --text-2: #a5acbd;
+  --text-3: #6b7287;
+  --danger: #ff5c7a;
+  --accent: #7c5cff; /* dynamic from album art; fallback */
+  --accent-2: #2de2e6; /* dynamic secondary; fallback */
+
+  /* Type */
+  --font-ui: "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif;
+  --font-display: "Inter Tight", "Space Grotesk", var(--font-ui);
+  --text-12: 12px;
+  --text-14: 14px;
+  --text-16: 16px;
+  --text-20: 20px;
+  --text-28: 28px;
+  --text-44: 44px;
+  --text-72: 72px;
+  --tracking-display: -0.02em;
+
+  /* Shape */
+  --radius-ctrl: 8px;
+  --radius-card: 12px;
+  --radius-panel: 20px;
+  --radius-pill: 999px;
+
+  /* Spacing (4 pt grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  /* Elevation */
+  --shadow-panel: 0 20px 60px -20px rgba(0, 0, 0, 0.6);
+  --blur-glass: 24px;
+
+  /* Motion */
+  --dur-fast: 120ms;
+  --dur-base: 220ms;
+  --dur-slow: 500ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Audio-reactive (written by audioBands bridge via rAF; 0 rest) */
+  --bass: 0;
+  --mid: 0;
+  --high: 0;
+  --rms: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+  }
+}
