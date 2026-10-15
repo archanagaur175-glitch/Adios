@@ -1,6 +1,6 @@
 # Adios — Build Plan
 
-STATUS: APPROVED (2026-10-15) · P3 · Step 3.4 · IN PROGRESS
+STATUS: APPROVED (2026-10-15) · P4 · Step 4.1 · PENDING
 
 ## DECISIONS
 - **D1 MSVC Build Tools**: missing (verified: no cl.exe). Install REQUIRED in P0.1 after approval: `winget install Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"` (UAC + large download; reopen terminal after). If install fails: STOP and ask. No GNU-toolchain workaround.
@@ -69,7 +69,7 @@ STATUS: APPROVED (2026-10-15) · P3 · Step 3.4 · IN PROGRESS
 - [x] **3.1 Loopback server skeleton: token + Host validation + CORS + Range (local files)** — axum on 127.0.0.1:0; `server_info` invoke. Tests: valid request 200, Range → 206 with correct bytes, wrong token → 403, wrong Host → 403 (R10). Verify: `cargo test`.
 - [x] **3.2 Folder picker + scan with lofty (tags + embedded art → covers/)** — `scan_folder` command + `tauri-plugin-dialog` folder picker + Library page Scan button; embedded Jpg/Png art → `covers/<sanitized-stem>-<fnv1a>.jpg`. Tests: recursive/hidden/extension filter, WAV fixture via real lofty read (duration+fallbacks), dup skip, error collection. Verify: `cargo test`; live scan of real MP3s logs N tracks.
 - [x] **3.3 PlayerEngine A/B + Web Audio graph + queue + player bar (seek/volume)** — two `<audio crossOrigin="anonymous">` → loopback URLs (server_info invoke); graph Element→Gain→Analyser→Master (analyser before master so bands survive low volume); A/B preload-and-swap (D3, crossfadeMs 0); store-driven engine with seekVersion (no echo loops); PlayerBar (transport/seek/volume/cover via convertFileSrc); Library rows click-to-play. Gate: tsc/lint clean; smoke log RMS > 0 while playing, seek/next/prev/pause verified.
-- [ ] **3.4 Media Session + global media keys + keyboard shortcuts + D3 crossfade listening test** — Verify: tsc/lint; manual media-key test; log listening-test result and final crossfade default.
+- [x] **3.4 Media Session + global media keys + keyboard shortcuts + D3 crossfade listening test** — MediaSession metadata/artwork + action handlers; `media-key` event bridge; RegisterHotKey thread (play/pause/next/prev/stop); shortcuts Space/←/→/↑/↓/M/Ctrl+K (Q/L deferred until queue/like UI exists); equal-power crossfade (CrossfadeController + A/B swap). Gate: tsc/lint clean; real OS media key advances track; crossfade gain curve + swap verified live; **D3 default kept at 0 ms** (fade works objectively; OFF remains the right default for gapless local listening).
 
 ### P4 Resolver spike + proxy (CORE RISK — before metadata/UI polish)
 - **Modules**: `src-tauri/src/resolver/{mod,local,cache,ytdlp,piped,score}.rs`, `src-tauri/src/server/cache.rs`, `commands/resolver.rs`, settings UI (instances, update yt-dlp).
@@ -183,9 +183,17 @@ P10 (optional, NOT planned): 3D layer behind existing VisualizerHost interface.
 | 2026-10-15 | dev smoke `VITE_ADIOS_SMOKE=1` first run (StrictMode double-harness, interleaved — diagnosed, not a bug: queue [1,3,2] artist-sort + shared store) | rms>0, seek/next correct; harness made idempotent (`started` guard) |
 | 2026-10-15 | dev smoke `VITE_ADIOS_SMOKE=1` clean single run (dev8) | `[smoke] tracks loaded: 3` · `rms=0.0126 isPlaying=true position=2.05s duration=261.36s` (**AnalyserNode RMS > 0 while playing**) · `after seek(5): position=5.53s` · `after next: 1 -> 3 position=1.32s isPlaying=true` · `after prev: 3 -> 1 position=1.06s isPlaying=true` · `final isPlaying=false - smoke done` — **P3.3 PASS** |
 | 2026-10-15 | `cargo test` (P3.3 regression) | 20 passed, 0 failed; file-length audit: engine 196, playerStore 134, PlayerBar 110, playerbar.css 149, smoke 83, bands/graph 52, icons 70 — all ≤200 |
+| 2026-10-15 | `cargo add windows-sys --features Win32_Foundation,Win32_UI_Input_KeyboardAndMouse,Win32_UI_WindowsAndMessaging` (P3.4) | windows-sys 0.61.2; `RegisterHotKey`/`GetMessageW`/`MSG`/`WM_HOTKEY=786`/`MOD_NOREPEAT=16384`/`VK_MEDIA_*` (VK cast u16→u32) verified from installed crate source |
+| 2026-10-15 | `npx tsc --noEmit; npm run lint` (P3.4) | both clean; file audit: engine 196, crossfade 173, element 73, mediaSession 113, shortcuts 34, smoke 148, media_keys.rs 77 — all ≤200 |
+| 2026-10-15 | `cargo test` (P3.4 regression) | 20 passed, 0 failed |
+| 2026-10-15 | INCIDENT (dev9-11): zero `[smoke]` lines, media keys dead — CDP probe (`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9223` + Runtime.evaluate) | `invoke("plugin:event\|emit")` resolved "EMIT OK" but Rust listener never fired → **`media_keys::spawn` ran the blocking `GetMessageW` loop inline in `setup`**, stalling the event loop so `app.listen` never registered; fixed with `std::thread::spawn` |
+| 2026-10-15 | INCIDENT (dev13): crossfade ended with id3 frozen at 1.93 s, `isPlaying=false` — CDP pause-hook with stack traces | WebView2 fires a `pause` event on the FROM element at natural end-of-track mid-fade → store set false → `applyPlaying(false)` → `cancel()` killed the fade; fixed: pause handler ignores `el.ended` (the `ended` handler owns queue advance) |
+| 2026-10-15 | dev smoke `VITE_ADIOS_SMOKE=1 VITE_ADIOS_XFADE_TEST=1` cold boot (dev14) | `rms=0.0149 isPlaying=true position=2.38s` · `seek(5)→5.54s` · `next 1→3 isPlaying=true` · `prev 3→1` · **synthetic `media-key next`: 1→2** · xfade samples: gains 1.000/0.000 → 0.946/0.324 → 0.795/0.607 → 0.568/0.823 → 0.286/0.958 → 0.000/1.000, swap `1→3`, id3 position keeps advancing (2.39→3.99), `isPlaying=true`, final gains 1.00/0.00 — equal-power curve + swap + advance verified |
+| 2026-10-15 | real OS media-key test: SendInput `VK_MEDIA_NEXT_TRACK` (0xB6, KEYEVENTF_EXTENDEDKEY) against live unfocused app | track advanced id3 → id2 ("back to friends", 0:03/4:21 playing) via RegisterHotKey → `media-key` event → FE handler — **global media keys PASS** (note: keybd_event without extended flag is ignored by the shell) |
+| 2026-10-15 | D3 listening-test result | crossfade objective metrics all green (curve, swap, no gap, queue advance); **default kept 0 ms (OFF)** — gapless local listening preferred; user can enable 1–8 s in settings later — **P3.4 PASS** |
 
 ## OPEN QUESTIONS
 1. None blocking. (D1–D4 decided by user; spike findings in P4.2 may raise a PO-token question — handled by STOP rule.)
 
 ## NEXT ACTION
-Run P3.4: Media Session metadata + handlers, Rust global media keys (RegisterHotKey → webview events), keyboard shortcuts hook (Space/←/→/↑/↓/Ctrl+K/L/Q/M), and the D3 crossfade listening test (try crossfadeMs values, record final default); verify tsc/lint + manual media-key test.
+Run P4.1: Resolver trait + LocalFile + Cache resolvers + health() + candidate scoring (duration ±3 s hard bound, token-set title similarity, official-audio/topic hints, reject live/cover/remix). Unit tests: scoring cases. Verify: `cargo test`.

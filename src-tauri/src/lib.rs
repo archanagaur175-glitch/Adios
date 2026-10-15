@@ -32,6 +32,9 @@ pub fn run() {
             });
             app.manage(server::ManagedServer(loopback));
 
+            // Global media keys (play/pause/next/prev/stop) → "media-key" events.
+            win::media_keys::spawn(app.handle().clone());
+
             // Debug harness channel: webview smoke logs (src/audio/smoke.ts).
             let _ = app.listen("smoke", |event| {
                 println!("[smoke] {}", event.payload());

@@ -2,26 +2,49 @@ import { emit } from "@tauri-apps/api/event";
 import { buildMediaUrl, inTauri } from "@/lib/api";
 import { useLibraryStore } from "@/store/libraryStore";
 import { usePlayerStore } from "@/store/playerStore";
-import { attachElement, getGraph, peekGraph } from "./graph";
+import { CrossfadeController, makeSwapAction, nextTrackUrl } from "./crossfade";
+import { createEngineElement } from "./element";
+import {
+  attachElement,
+  getGraph,
+  peekGraph,
+  setElementGain,
+  setMasterVolume,
+} from "./graph";
 
-/** Two <audio> A/B elements (both crossOrigin="anonymous") wired into the
-    shared graph. Store is the source of truth; engine applies changes and
-    reports events back. Gapless path: preload next on the inactive element,
-    swap on ended (crossfadeMs=0 = preload-and-switch, D3). */
+/** Two <audio> A/B elements (crossOrigin="anonymous") on the shared graph.
+    Store is the source of truth. Gapless: preload next on the inactive
+    element, swap on ended (crossfadeMs=0, D3); crossfadeMs>0 runs an
+    equal-power fade via CrossfadeController. */
 
 class PlayerEngine {
   private els: [HTMLAudioElement, HTMLAudioElement] | null = null;
   private active = 0;
   private started = false;
-  /** True while loadCurrent mutates elements (suppresses play/pause echoes). */
+  /** True while element mutation must not echo into store play/pause. */
   private suppress = false;
   /** Monotonic counter so rapid track changes cannot race. */
   private loadGen = 0;
+  private cross: CrossfadeController | null = null;
 
   start(): void {
     if (this.started) return;
     this.started = true;
     this.ensureEls();
+    this.cross = new CrossfadeController(
+      () => this.els,
+      () => this.active,
+      makeSwapAction({
+        getElements: () => this.els,
+        getActiveIndex: () => this.active,
+        setActiveIndex: (index) => (this.active = index),
+        withSuppress: (fn) => this.withSuppress(fn),
+        clearFading: () => {
+          if (this.cross) this.cross.fading = false;
+        },
+      }),
+      (fn) => this.withSuppress(fn),
+    );
     usePlayerStore.subscribe((state, prev) => {
       if (state.currentTrackId !== prev.currentTrackId) {
         void this.loadCurrent();
@@ -29,45 +52,55 @@ class PlayerEngine {
         this.applyPlaying(state.isPlaying);
       }
       if (state.volume !== prev.volume || state.muted !== prev.muted) {
-        this.applyVolume();
+        setMasterVolume(state.volume, state.muted);
       }
       if (state.seekVersion !== prev.seekVersion) {
+        this.cross?.cancel();
         const el = this.currentEl();
         if (el) el.currentTime = state.positionSec;
       }
     });
   }
 
+  /** Debug/readout for the smoke harness: [activeGain, inactiveGain]. */
+  gainValues(): [number, number] | null {
+    const graph = peekGraph();
+    if (!graph || !this.els) return null;
+    const a = graph.gains.get(this.els[this.active]);
+    const b = graph.gains.get(this.els[1 - this.active]);
+    return a && b ? [a.gain.value, b.gain.value] : null;
+  }
+
+  private async withSuppress(fn: () => Promise<void>): Promise<void> {
+    this.suppress = true;
+    try {
+      await fn();
+    } finally {
+      this.suppress = false;
+    }
+  }
+
   private ensureEls(): [HTMLAudioElement, HTMLAudioElement] {
     if (this.els) return this.els;
-    const make = () => {
-      const el = new Audio();
-      el.crossOrigin = "anonymous";
-      el.preload = "auto";
-      el.addEventListener("ended", () => this.onEnded());
-      el.addEventListener("timeupdate", () => this.onTimeUpdate(el));
-      el.addEventListener("loadedmetadata", () => this.onMeta(el));
-      el.addEventListener("play", () => {
-        if (!this.suppress && el === this.currentEl()) {
-          usePlayerStore.getState().setPlaying(true);
-        }
-      });
-      el.addEventListener("pause", () => {
-        if (!this.suppress && el === this.currentEl()) {
-          usePlayerStore.getState().setPlaying(false);
-        }
-      });
-      el.addEventListener("error", () => {
-        if (!this.suppress && el === this.currentEl()) {
-          console.error("[engine] media error:", el.error?.message ?? "unknown");
-          usePlayerStore.getState().setPlaying(false);
-          if (inTauri) void emit("smoke", { msg: `media error: ${el.error?.message}` });
-        }
-      });
-      return el;
-    };
-    this.els = [make(), make()];
+    this.els = [
+      createEngineElement(this.elementHooks()),
+      createEngineElement(this.elementHooks()),
+    ];
     return this.els;
+  }
+
+  private elementHooks() {
+    return {
+      currentEl: () => this.currentEl(),
+      isSuppressed: () => this.suppress,
+      isFading: () => this.cross?.fading ?? false,
+      maybeBeginFade: () => void this.cross?.maybeBegin(),
+      onError: (el: HTMLAudioElement) => {
+        console.error("[engine] media error:", el.error?.message ?? "unknown");
+        usePlayerStore.getState().setPlaying(false);
+        if (inTauri) void emit("smoke", { msg: `media error: ${el.error?.message}` });
+      },
+    };
   }
 
   private currentEl(): HTMLAudioElement | null {
@@ -99,6 +132,7 @@ class PlayerEngine {
       let el = els[this.active];
       const other = els[1 - this.active];
       if (other.src === url) {
+        // Preloaded element already buffers this track — swap onto it.
         this.active = 1 - this.active;
         el = els[this.active];
         els[1 - this.active].pause();
@@ -107,7 +141,7 @@ class PlayerEngine {
       const inactive = els[1 - this.active];
       if (!inactive.paused) inactive.pause();
       if (usePlayerStore.getState().isPlaying) await this.playEl(el);
-      this.preloadNext();
+      void this.preloadNext();
     } finally {
       this.suppress = false;
     }
@@ -115,10 +149,14 @@ class PlayerEngine {
 
   private async playEl(el: HTMLAudioElement): Promise<void> {
     try {
+      const graph = getGraph();
       attachElement(el);
-      const ctx = getGraph().ctx;
-      if (ctx.state === "suspended") await ctx.resume().catch(() => {});
-      this.applyVolume();
+      setElementGain(el, 1);
+      const other = this.els?.[1 - this.active];
+      if (other && !this.cross?.fading) setElementGain(other, 0);
+      if (graph.ctx.state === "suspended") await graph.ctx.resume().catch(() => {});
+      const { volume, muted } = usePlayerStore.getState();
+      setMasterVolume(volume, muted);
       await el.play();
     } catch (error) {
       console.error("[engine] play() rejected:", error);
@@ -131,55 +169,17 @@ class PlayerEngine {
     const el = this.currentEl();
     if (!el) return;
     if (playing) void this.playEl(el);
-    else if (!el.paused) el.pause();
-  }
-
-  private applyVolume(): void {
-    const graph = this.els ? peekGraph() : null;
-    if (!graph) return;
-    const { volume, muted } = usePlayerStore.getState();
-    graph.master.gain.value = muted ? 0 : volume;
-  }
-
-  private onTimeUpdate(el: HTMLAudioElement): void {
-    if (el !== this.currentEl() || this.suppress) return;
-    const store = usePlayerStore.getState();
-    if (Math.abs(el.currentTime - store.positionSec) >= 0.25) {
-      store.setPosition(el.currentTime);
+    else {
+      this.cross?.cancel();
+      if (!el.paused) el.pause();
     }
-  }
-
-  private onMeta(el: HTMLAudioElement): void {
-    if (el !== this.currentEl()) return;
-    const duration = Number.isFinite(el.duration) ? el.duration : 0;
-    usePlayerStore.getState().setDuration(duration);
-  }
-
-  private onEnded(): void {
-    const store = usePlayerStore.getState();
-    if (store.repeatMode === "track") {
-      const el = this.currentEl();
-      if (el) {
-        el.currentTime = 0;
-        void el.play().catch(() => {});
-      }
-      return;
-    }
-    const before = store.currentTrackId;
-    store.next();
-    const after = usePlayerStore.getState();
-    if (after.currentTrackId === before) after.setPlaying(false);
   }
 
   /** Buffer the upcoming track on the inactive element (near-gapless swap). */
   private preloadNext(): void {
-    const store = usePlayerStore.getState();
-    const nextId = store.peekNextId();
-    const currentId = store.currentTrackId;
-    if (nextId == null || !this.els) return;
-    const track = useLibraryStore.getState().tracks.find((t) => t.id === nextId);
-    if (!track?.path) return;
-    void buildMediaUrl(track.path).then((url) => {
+    const currentId = usePlayerStore.getState().currentTrackId;
+    if (!this.els) return;
+    void nextTrackUrl().then((url) => {
       if (!url || !this.els) return;
       if (usePlayerStore.getState().currentTrackId !== currentId) return;
       const other = this.els[1 - this.active];

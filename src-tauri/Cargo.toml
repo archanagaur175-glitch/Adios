@@ -32,6 +32,7 @@ percent-encoding = "2.3.2"
 bytes = "1.12.1"
 lofty = "0.25.4"
 tauri-plugin-dialog = "2.8.3"
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging"] }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

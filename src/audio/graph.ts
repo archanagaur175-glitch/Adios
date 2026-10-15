@@ -50,3 +50,14 @@ export function attachElement(el: HTMLAudioElement): GainNode {
 export function getAnalyser(): AnalyserNode | null {
   return graph?.analyser ?? null;
 }
+
+/** Set an element's crossfade gain to 0 (inactive) or 1 (active). */
+export function setElementGain(el: HTMLAudioElement, value: 0 | 1): void {
+  const gain = graph?.gains.get(el);
+  if (gain) gain.gain.value = value;
+}
+
+/** Apply store volume/mute to the master gain (analyser sits before it). */
+export function setMasterVolume(volume: number, muted: boolean): void {
+  if (graph) graph.master.gain.value = muted ? 0 : volume;
+}
