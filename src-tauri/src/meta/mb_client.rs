@@ -8,7 +8,8 @@ use std::sync::Arc;
 
 use serde::de::DeserializeOwned;
 
-use super::mb_types::{self, SearchKind, SearchResults};
+use super::mb_parse;
+use super::mb_types::{SearchKind, SearchResults};
 use super::rate_limit::RateLimitQueue;
 use crate::resolver::{fnv1a_hex, BoxFuture, SharedDb};
 
@@ -172,6 +173,6 @@ impl<T: MbTransport> MbClient<T> {
         query: &str,
     ) -> Result<SearchResults<R>, String> {
         let body = self.fetch(kind, query).await?;
-        mb_types::parse_list(kind.list_key(), &body)
+        mb_parse::parse_list(kind.list_key(), &body)
     }
 }

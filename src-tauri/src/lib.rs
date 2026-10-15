@@ -68,6 +68,10 @@ pub fn run() {
                 meta::mb_client::MbClient::with_default_transport(shared_db.clone(), meta::mb_client::user_agent(None));
             app.manage(mb_client);
 
+            // Cover Art Archive (P5.2): no CAA rate limits per docs, so the
+            // client does not share the MB 1-req/s queue.
+            app.manage(meta::cover_art::CoverArtClient::default());
+
             let loopback =
                 server::start(shared_db, cache_dir, chain, table).expect("loopback server");
             println!("[server] listening on {}", loopback.base_url());
@@ -118,7 +122,8 @@ pub fn run() {
             commands::resolver::resolver_health,
             commands::resolver::test_instance,
             commands::ytdlp::update_ytdlp,
-            commands::search::search_metadata
+            commands::search::search_metadata,
+            commands::cover::fetch_cover
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

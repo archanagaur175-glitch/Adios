@@ -1,3 +1,4 @@
+pub mod cover;
 pub mod library;
 pub mod resolver;
 pub mod scan;

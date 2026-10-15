@@ -2,7 +2,8 @@
 //! JSON examples on musicbrainz.org/doc/MusicBrainz_API/Search (artist,
 //! recording, release — verified 2026-10-15).
 
-use crate::meta::mb_types::{parse_list, MbArtist, MbRecording, MbRelease, SearchKind};
+use crate::meta::mb_parse::parse_list;
+use crate::meta::mb_types::{MbArtist, MbRecording, MbRelease, SearchKind};
 
 const ARTIST_JSON: &str = r#"{
   "created": "2017-03-12T16:54:57.165Z",

@@ -134,6 +134,24 @@ pub fn track_set_cover(conn: &Connection, id: i64, cover_path: &str) -> Result<u
     )
 }
 
+/// Persist CAA cover + palette (+ the release MBID the art came from).
+pub fn track_set_cover_palette(
+    conn: &Connection,
+    id: i64,
+    cover_path: &str,
+    accent: &str,
+    accent2: &str,
+    dominant_colors_json: &str,
+    mb_release_id: &str,
+) -> Result<usize> {
+    conn.execute(
+        "UPDATE tracks SET cover_path = ?2, accent = ?3, accent2 = ?4,
+            dominant_colors_json = ?5, mb_release_id = ?6, updated_at = datetime('now')
+         WHERE id = ?1",
+        params![id, cover_path, accent, accent2, dominant_colors_json, mb_release_id],
+    )
+}
+
 pub fn track_get(conn: &Connection, id: i64) -> Result<Option<TrackRow>> {
     let sql = format!("SELECT {TRACK_COLUMNS} FROM tracks WHERE id = ?1");
     let mut stmt = conn.prepare(&sql)?;

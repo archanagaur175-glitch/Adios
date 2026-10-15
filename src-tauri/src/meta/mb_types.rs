@@ -186,25 +186,3 @@ impl MbRelease {
         credit_names(&self.artist_credit)
     }
 }
-
-/// Decode a full MB search body: `{created, count, offset, "<list>": [...]}`.
-/// A missing list key decodes as an empty page (zero-result responses).
-pub fn parse_list<T: serde::de::DeserializeOwned>(
-    list_key: &str,
-    body: &str,
-) -> Result<SearchResults<T>, String> {
-    let v: serde_json::Value =
-        serde_json::from_str(body).map_err(|e| format!("mb: invalid json: {e}"))?;
-    let count = v.get("count").and_then(|c| c.as_i64()).unwrap_or(0);
-    let offset = v.get("offset").and_then(|c| c.as_i64()).unwrap_or(0);
-    let items = match v.get(list_key) {
-        Some(arr) if arr.is_array() => serde_json::from_value(arr.clone())
-            .map_err(|e| format!("mb: invalid {list_key} items: {e}"))?,
-        _ => Vec::new(),
-    };
-    Ok(SearchResults {
-        count,
-        offset,
-        items,
-    })
-}
