@@ -5,7 +5,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::db::open_memory;
-use crate::meta::mb_client::{user_agent, MbClient};
+use crate::meta::mb_client::MbClient;
 use crate::meta::mb_types::{MbArtist, SearchKind};
 use crate::resolver::SharedDb;
 
@@ -13,7 +13,7 @@ use crate::resolver::SharedDb;
 #[ignore]
 async fn mb_live_search_roundtrip_then_cache_only() {
     let db: SharedDb = Arc::new(Mutex::new(open_memory().unwrap()));
-    let c = MbClient::with_default_transport(Arc::clone(&db), user_agent(None));
+    let c = MbClient::with_default_transport(Arc::clone(&db));
 
     let page = c
         .search::<MbArtist>(SearchKind::Artist, "The Weeknd")

@@ -4,6 +4,7 @@ import { installShortcuts } from "@/lib/shortcuts";
 import { Titlebar } from "@/components/titlebar/Titlebar";
 import { Sidebar } from "@/components/sidebar/Sidebar";
 import { PlayerBar } from "@/components/player/PlayerBar";
+import { SearchOverlay } from "@/components/search/SearchOverlay";
 import "./appshell.css";
 
 export function AppShell() {
@@ -23,6 +24,7 @@ export function AppShell() {
         </main>
       </div>
       <PlayerBar />
+      <SearchOverlay />
     </div>
   );
 }

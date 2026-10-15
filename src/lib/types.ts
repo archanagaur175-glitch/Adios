@@ -37,3 +37,40 @@ export interface Playlist {
 }
 
 export type QualityTier = "low" | "med" | "high";
+
+// ---------- Search (P5.1/P5.3) ----------
+
+/** One page of MusicBrainz search results (mirrors Rust `SearchResults`). */
+export interface SearchPage<T> {
+  count: number;
+  offset: number;
+  items: T[];
+}
+
+/** Minimal MB shapes the search UI consumes (see mb_types.rs). */
+export interface MbArtistItem {
+  id: string;
+  score?: number | null;
+  name: string;
+  disambiguation?: string | null;
+}
+
+export interface MbCreditRef {
+  artist?: { name: string } | null;
+}
+
+export interface MbRecordingItem {
+  id: string;
+  score?: number | null;
+  title: string;
+  length?: number | null;
+  artistCredit?: MbCreditRef[] | null;
+}
+
+export interface MbReleaseItem {
+  id: string;
+  score?: number | null;
+  title: string;
+  artistCredit?: MbCreditRef[] | null;
+  date?: string | null;
+}

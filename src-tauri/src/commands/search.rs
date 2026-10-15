@@ -1,12 +1,23 @@
-//! Metadata search command (P5.1): exposes the MB client so the P5 gate
-//! ("repeat query served from meta_cache with NO network hit — logged") can
-//! be verified live. The local-first Ctrl+K UI lands in 5.3 and consumes
-//! this same command.
+//! Search commands (P5.1/P5.3): `search_local` is the instant FTS5 layer of
+//! the Ctrl+K overlay; `search_metadata` is the MusicBrainz layer that
+//! appends after the 275 ms debounce (local-first, both cache-first).
+
 use serde_json::to_value;
 use tauri::State;
 
+use crate::db::DbState;
 use crate::meta::mb_client::{MbClient, ReqwestTransport};
 use crate::meta::mb_types::{MbArtist, MbRecording, MbRelease, SearchKind};
+
+/// Instant local library search (FTS5 prefix match, ranked, ≤ 50 rows).
+#[tauri::command]
+pub fn search_local(db: State<DbState>, query: String) -> Result<Vec<crate::db::queries::TrackRow>, String> {
+    let conn = db
+        .0
+        .lock()
+        .map_err(|e| format!("db lock poisoned: {e}"))?;
+    crate::db::fts::search(&conn, &query, 50).map_err(|e| format!("search failed: {e}"))
+}
 
 /// Search MusicBrainz through the cache-first client.
 /// `kind`: "artist" | "recording" | "release".

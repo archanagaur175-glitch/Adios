@@ -1,6 +1,9 @@
+pub mod fts;
 pub mod migrations;
 pub mod queries;
 
+#[cfg(test)]
+mod fts_tests;
 #[cfg(test)]
 mod tests;
 

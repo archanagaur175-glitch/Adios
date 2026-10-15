@@ -51,12 +51,7 @@ fn client(body: &str, interval: std::time::Duration) -> Harness {
         calls: Arc::clone(&calls),
         body: body.to_owned(),
     };
-    let client = MbClient::new(
-        transport,
-        Arc::clone(&queue),
-        Arc::clone(&db),
-        user_agent(None),
-    );
+    let client = MbClient::new(transport, Arc::clone(&queue), Arc::clone(&db));
     (client, queue, db, calls)
 }
 
@@ -172,4 +167,22 @@ fn user_agent_is_descriptive_with_or_without_contact() {
     );
     assert!(user_agent(None).contains("not-configured"));
     assert!(user_agent(Some("  ")).contains("not-configured"));
+}
+
+/// D2: the network call reads `contactEmail` fresh from settings, so the UA
+/// reflects a saved email without restarting the app.
+#[tokio::test]
+async fn network_ua_reads_contact_email_from_settings() {
+    let (c, _queue, db, calls) = client(RECORDING_JSON, std::time::Duration::from_millis(1));
+    {
+        let conn = db.lock().unwrap();
+        conn.execute(
+            "INSERT INTO settings (key, value_json) VALUES ('contactEmail', '\"me@example.io\"')",
+            [],
+        )
+        .unwrap();
+    }
+    c.search::<MbRecording>(SearchKind::Recording, "Dua Lipa").await.expect("fetch");
+    let ua = &calls.lock().unwrap()[0].1;
+    assert_eq!(ua, "Adios/0.1 (personal use; contact: me@example.io)");
 }

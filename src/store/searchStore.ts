@@ -13,6 +13,7 @@ export interface OnlineResult {
 }
 
 interface SearchState {
+  open: boolean;
   query: string;
   localResults: Track[];
   onlineTracks: OnlineResult[];
@@ -22,6 +23,8 @@ interface SearchState {
   activeIndex: number;
   onlinePending: boolean;
 
+  /** Open the overlay, or close it (closing = full reset + leave #/search). */
+  setOpen: (open: boolean) => void;
   setQuery: (query: string) => void;
   setLocalResults: (results: Track[]) => void;
   setOnlineResults: (results: {
@@ -35,6 +38,7 @@ interface SearchState {
 }
 
 const initial = {
+  open: false,
   query: "",
   localResults: [] as Track[],
   onlineTracks: [] as OnlineResult[],
@@ -47,6 +51,16 @@ const initial = {
 export const useSearchStore = create<SearchState>((set) => ({
   ...initial,
 
+  setOpen: (open) => {
+    if (open) {
+      set({ open: true });
+      return;
+    }
+    set(initial);
+    // Closing while parked on the search route returns to the previous page
+    // (the overlay is global; the route exists so the sidebar link works).
+    if (window.location.hash === "#/search") window.location.hash = "#/";
+  },
   setQuery: (query) => set({ query, activeIndex: 0 }),
   setLocalResults: (localResults) => set({ localResults }),
   setOnlineResults: (results) =>

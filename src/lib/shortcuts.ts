@@ -3,6 +3,7 @@
     Q (queue) and L (like) are reserved for later UIs. */
 
 import { usePlayerStore } from "@/store/playerStore";
+import { useSearchStore } from "@/store/searchStore";
 
 const SEEK_STEP_SEC = 5;
 const VOLUME_STEP = 0.05;
@@ -16,16 +17,17 @@ function isEditable(target: EventTarget | null): boolean {
 /** Install the document-level keydown handler; returns a cleanup function. */
 export function installShortcuts(): () => void {
   const onKey = (e: KeyboardEvent) => {
-    if (isEditable(e.target)) return;
-    const store = usePlayerStore.getState();
-
+    // Ctrl/Cmd+K toggles the search overlay from anywhere (even inputs).
     if (e.ctrlKey || e.metaKey) {
       if (e.key.toLowerCase() === "k") {
         e.preventDefault();
-        window.location.hash = "#/search";
+        const search = useSearchStore.getState();
+        search.setOpen(!search.open);
       }
       return;
     }
+    if (isEditable(e.target)) return;
+    const store = usePlayerStore.getState();
 
     switch (e.key) {
       case " ": {

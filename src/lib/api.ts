@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Track } from "@/lib/types";
+import type { SearchPage, Track } from "@/lib/types";
 
 /** True when running inside the Tauri webview (not plain vite/preview). */
 export const inTauri = "__TAURI_INTERNALS__" in window;
@@ -142,4 +142,21 @@ export interface ScanSummary {
 export async function scanFolder(folder: string): Promise<ScanSummary | null> {
   if (!inTauri) return null;
   return invoke<ScanSummary>("scan_folder", { folder });
+}
+
+// ---------- Search (P5.3) ----------
+
+/** Instant local FTS5 search (≤ 50 rows); empty input short-circuits. */
+export async function searchLocal(query: string): Promise<Track[]> {
+  if (!inTauri || !query.trim()) return [];
+  return invoke<Track[]>("search_local", { query });
+}
+
+/** MusicBrainz search via the cache-first MB client (queue + meta_cache). */
+export async function searchMetadata<T>(
+  kind: "artist" | "recording" | "release",
+  query: string,
+): Promise<SearchPage<T>> {
+  if (!inTauri || !query.trim()) return { count: 0, offset: 0, items: [] };
+  return invoke<SearchPage<T>>("search_metadata", { kind, query });
 }

@@ -13,8 +13,8 @@ use super::mb_types::{SearchKind, SearchResults};
 use super::rate_limit::RateLimitQueue;
 use crate::resolver::{fnv1a_hex, BoxFuture, SharedDb};
 
-/// D2: descriptive UA. Placeholder until the user saves their contact email
-/// in settings (P5 adds the field); still "meaningful" for MB's rules.
+/// D2: descriptive UA. `contactEmail` comes from settings (5.3); until the
+/// user saves one we still send a "meaningful" placeholder per MB's rules.
 pub fn user_agent(contact: Option<&str>) -> String {
     match contact.map(str::trim).filter(|s| !s.is_empty()) {
         Some(c) => format!("Adios/0.1 (personal use; contact: {c})"),
@@ -92,28 +92,21 @@ pub struct MbClient<T: MbTransport> {
     transport: T,
     queue: Arc<RateLimitQueue>,
     db: SharedDb,
-    ua: String,
 }
 
 impl MbClient<ReqwestTransport> {
     /// Production wiring: reqwest transport + the shared 1-req/s queue.
-    pub fn with_default_transport(db: SharedDb, ua: String) -> Self {
-        Self::new(
-            ReqwestTransport::default(),
-            RateLimitQueue::one_per_second(),
-            db,
-            ua,
-        )
+    pub fn with_default_transport(db: SharedDb) -> Self {
+        Self::new(ReqwestTransport::default(), RateLimitQueue::one_per_second(), db)
     }
 }
 
 impl<T: MbTransport> MbClient<T> {
-    pub fn new(transport: T, queue: Arc<RateLimitQueue>, db: SharedDb, ua: String) -> Self {
+    pub fn new(transport: T, queue: Arc<RateLimitQueue>, db: SharedDb) -> Self {
         Self {
             transport,
             queue,
             db,
-            ua,
         }
     }
 
@@ -121,6 +114,20 @@ impl<T: MbTransport> MbClient<T> {
     #[cfg(test)]
     pub fn queue(&self) -> &Arc<RateLimitQueue> {
         &self.queue
+    }
+
+    /// D2 UA, read fresh from the `contactEmail` setting on every network
+    /// call so saving the email in Settings takes effect immediately.
+    fn current_ua(&self) -> String {
+        let email = self.db.lock().ok().and_then(|conn| {
+            conn.query_row(
+                "SELECT value_json FROM settings WHERE key = 'contactEmail'",
+                [],
+                |r| r.get::<_, String>(0),
+            )
+            .ok()
+        }).and_then(|raw| serde_json::from_str::<String>(&raw).ok());
+        user_agent(email.as_deref())
     }
 
     fn cache_get(&self, kind: SearchKind, key: &str) -> Result<Option<String>, String> {
@@ -159,7 +166,7 @@ impl<T: MbTransport> MbClient<T> {
         self.queue.wait().await;
         println!("[mb] fetch kind={} q={query}", kind.cache_kind());
         let url = build_url(kind, query)?;
-        let body = self.transport.get(&url, &self.ua).await?;
+        let body = self.transport.get(&url, &self.current_ua()).await?;
         if let Err(e) = self.cache_put(kind, &key, &body) {
             eprintln!("[mb] cache write skipped: {e}");
         }

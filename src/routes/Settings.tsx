@@ -1,4 +1,5 @@
-﻿import { ResolverSettings } from "@/components/settings/ResolverSettings";
+﻿import { ContactSettings } from "@/components/settings/ContactSettings";
+import { ResolverSettings } from "@/components/settings/ResolverSettings";
 import { YtdlpSettings } from "@/components/settings/YtdlpSettings";
 
 export default function SettingsPage() {
@@ -7,6 +8,7 @@ export default function SettingsPage() {
       <h1 className="text-28 font-display">Settings</h1>
       <ResolverSettings />
       <YtdlpSettings />
+      <ContactSettings />
     </section>
   );
 }

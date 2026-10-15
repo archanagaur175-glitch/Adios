@@ -62,10 +62,9 @@ pub fn run() {
             app.manage(table.clone());
 
             // Metadata search (P5.1): cache-first MB client behind the
-            // global 1-req/s queue. UA placeholder per D2 — contact email
-            // field + warning land with the search UI (5.3).
-            let mb_client =
-                meta::mb_client::MbClient::with_default_transport(shared_db.clone(), meta::mb_client::user_agent(None));
+            // global 1-req/s queue. The D2 UA is built per network call from
+            // the `contactEmail` setting (5.3 — placeholder until saved).
+            let mb_client = meta::mb_client::MbClient::with_default_transport(shared_db.clone());
             app.manage(mb_client);
 
             // Cover Art Archive (P5.2): no CAA rate limits per docs, so the
@@ -123,6 +122,7 @@ pub fn run() {
             commands::resolver::test_instance,
             commands::ytdlp::update_ytdlp,
             commands::search::search_metadata,
+            commands::search::search_local,
             commands::cover::fetch_cover
         ])
         .run(tauri::generate_context!())
