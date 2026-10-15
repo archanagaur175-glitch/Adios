@@ -6,6 +6,8 @@ import { runSmokeIfEnabled } from "@/audio/smoke";
 import { ToastHost } from "@/components/common/ToastHost";
 import { inTauri, listTracks } from "@/lib/api";
 import { useLibraryStore } from "@/store/libraryStore";
+import { initBandsBridge } from "@/visuals/audioBandsBridge";
+import { initPaletteWiring } from "@/visuals/palette";
 import { AppShell } from "@/routes/AppShell";
 import HomePage from "@/routes/Home";
 import LibraryPage from "@/routes/Library";
@@ -19,6 +21,10 @@ function App() {
   useEffect(() => {
     initPlayerEngine();
     initMediaIntegration();
+    // P6.1: analyser → --band-* vars (visibility-gated rAF) + track palette
+    // → --palette-* vars. StrictMode double-mount is handled by cleanup.
+    const stopBands = initBandsBridge();
+    const stopPalette = initPaletteWiring();
     if (inTauri) {
       void listTracks()
         .then(useLibraryStore.getState().setTracks)
@@ -27,6 +33,10 @@ function App() {
       useLibraryStore.getState().setHydrated(true);
     }
     void runSmokeIfEnabled();
+    return () => {
+      stopBands();
+      stopPalette();
+    };
   }, []);
 
   return (

@@ -89,6 +89,12 @@ pub fn run() {
                 println!("[smoke] {}", event.payload());
             });
 
+            // P6.1: bands bridge start/stop proof lines in the dev log
+            // (webview console output is not forwarded to stdout).
+            let _ = app.listen("bands", |event| {
+                println!("[bands] {}", event.payload());
+            });
+
             // Debug-only smoke harness: run one scan at startup so the
             // real command + lofty path can be verified headlessly.
             #[cfg(debug_assertions)]
