@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { searchLocal, searchMetadata } from "@/lib/api";
+import { rankMbTracks } from "./rankMb";
 import { useSearchStore } from "@/store/searchStore";
 import type { MbArtistItem, MbRecordingItem, MbReleaseItem } from "@/lib/types";
 
@@ -57,13 +58,25 @@ export function useSearchLayers(query: string): void {
       ])
         .then(([rec, rel, art]) => {
           if (cancelled) return;
-          useSearchStore.getState().setOnlineResults({
-            tracks: rec.items.map((r) => ({
+          // P9.6 fix #2: re-rank tracks so real recordings beat karaoke/
+          // tribute/lullaby ripoffs (MB has no popularity field).
+          const tracks = rankMbTracks(
+            q,
+            rec.items.map((r) => ({
               mbid: r.id,
               title: r.title,
               artist: creditNames(r.artistCredit),
               durationMs: r.length ?? undefined,
+              score: r.score,
             })),
+          ).map((r) => ({
+            mbid: r.mbid,
+            title: r.title,
+            artist: r.artist,
+            durationMs: r.durationMs,
+          }));
+          useSearchStore.getState().setOnlineResults({
+            tracks,
             albums: rel.items.map((r) => ({
               mbid: r.id,
               title: r.title,

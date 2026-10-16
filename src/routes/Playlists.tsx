@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { open } from "@tauri-apps/plugin-dialog";
 import { inTauri } from "@/lib/api";
@@ -13,6 +13,7 @@ export default function PlaylistsPage() {
   const pushToast = useUiStore((s) => s.pushToast);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     void load();
@@ -79,8 +80,18 @@ export default function PlaylistsPage() {
           </button>
           <button
             type="button"
-            onClick={() => void create()}
-            disabled={!inTauri || !name.trim()}
+            onClick={() => {
+              // P9.6 fix #3: the button used to stay greyed out until a name
+              // was typed (input is below — easy to miss). Now it always
+              // works: empty name → focus the input with a hint.
+              if (!name.trim()) {
+                nameRef.current?.focus();
+                pushToast({ message: "Type a name for the playlist first", tone: "info" });
+                return;
+              }
+              void create();
+            }}
+            disabled={!inTauri}
             className="rounded-ctrl bg-accent px-4 py-2 text-14 font-medium text-[color:var(--on-accent)] transition hover:opacity-90 disabled:opacity-50"
           >
             New playlist
@@ -90,6 +101,7 @@ export default function PlaylistsPage() {
 
       <div className="flex gap-2">
         <input
+          ref={nameRef}
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}

@@ -67,7 +67,11 @@ pub async fn update_ytdlp(
     }
 
     // Verify before swapping: the download must actually run.
-    let verify = tokio::process::Command::new(&tmp).arg("--version").output().await;
+    // sidecar_command hides the console window on Windows (P9.6 fix #1).
+    let verify = crate::resolver::ytdlp::sidecar_command(&tmp)
+        .arg("--version")
+        .output()
+        .await;
     let out = match verify {
         Ok(out) if out.status.success() => out,
         Ok(_) => {

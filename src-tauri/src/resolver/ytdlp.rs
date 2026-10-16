@@ -29,6 +29,17 @@ pub fn bin_handle(initial: PathBuf) -> BinHandle {
     Arc::new(tokio::sync::RwLock::new(initial))
 }
 
+/// Sidecar spawn helper: on Windows never flash a console window (user
+/// report — picking a search track flashed cmd.exe). CREATE_NO_WINDOW.
+pub fn sidecar_command(path: &std::path::Path) -> Command {
+    let mut cmd = Command::new(path);
+    #[cfg(windows)]
+    {
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW (tokio inherent)
+    }
+    cmd
+}
+
 pub struct YtDlpResolver {
     bin: BinHandle,
 }
@@ -41,7 +52,7 @@ impl YtDlpResolver {
     async fn health_async(&self) -> Health {
         let started = Instant::now();
         let path = self.bin.read().await.clone();
-        let status = match Command::new(&path).arg("--version").output().await {
+        let status = match sidecar_command(&path).arg("--version").output().await {
             Ok(out) if out.status.success() && !out.stdout.is_empty() => HealthStatus::Ok,
             _ => HealthStatus::Down,
         };
@@ -54,7 +65,7 @@ impl YtDlpResolver {
     async fn resolve_async(&self, query: &Query) -> Result<Candidate, ResolveError> {
         let path = self.bin.read().await.clone();
         let args = build_args(query);
-        let output = Command::new(&path)
+        let output = sidecar_command(&path)
             .args(&args)
             .output()
             .await
