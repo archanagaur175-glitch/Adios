@@ -35,7 +35,11 @@ export function VisualizerHost() {
     };
 
     const onVis = () => sync();
-    const unsubPlayer = usePlayerStore.subscribe(() => sync());
+    const unsubPlayer = usePlayerStore.subscribe((state, prev) => {
+      sync();
+      // Play/pause accent pulse (DESIGN §8): brief glow boost.
+      if (state.isPlaying !== prev.isPlaying) ctrl.pulse();
+    });
     const unsubUi = useUiStore.subscribe(() => sync());
     document.addEventListener("visibilitychange", onVis);
     sync(); // initial: reconcile with persisted qualityTier
@@ -46,6 +50,9 @@ export function VisualizerHost() {
         g.__adios.viz = {
           get fps() {
             return ctrl.lastFps;
+          },
+          get boost() {
+            return Math.round(ctrl.boostRemaining);
           },
         };
       }

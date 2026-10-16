@@ -1,13 +1,16 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { inTauri } from "@/lib/api";
 import { formatDuration } from "@/lib/format";
+import { runWithViewTransition } from "@/lib/viewTransition";
 import { useLibraryStore } from "@/store/libraryStore";
 import { usePlayerStore } from "@/store/playerStore";
+import { useUiStore } from "@/store/uiStore";
 import { CrossFadeArt } from "./CrossFadeArt";
 import { IconMute, IconNext, IconPause, IconPlay, IconPrev, IconVolume } from "./icons";
 import "./playerbar.css";
 
-/** Fixed bottom player bar: transport, seek, volume (P3.3). */
+/** Fixed bottom player bar: transport, seek, volume (P3.3).
+ *  P6.4: the cover is a button that expands Now Playing (View Transition). */
 export function PlayerBar() {
   const currentTrackId = usePlayerStore((s) => s.currentTrackId);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
@@ -16,6 +19,7 @@ export function PlayerBar() {
   const volume = usePlayerStore((s) => s.volume);
   const muted = usePlayerStore((s) => s.muted);
   const hasTrack = usePlayerStore((s) => s.queue.length > 0 && s.currentTrackId != null);
+  const npOpen = useUiStore((s) => s.nowPlayingOpen);
   const track = useLibraryStore((s) =>
     s.tracks.find((t) => t.id === currentTrackId) ?? null,
   );
@@ -28,9 +32,18 @@ export function PlayerBar() {
   return (
     <footer className="player-bar" aria-label="Player">
       <div className="player-bar__info">
-        <div className="player-bar__cover" aria-hidden="true">
-          <CrossFadeArt src={cover} />
-        </div>
+        <button
+          type="button"
+          className="player-bar__cover player-bar__cover-btn"
+          aria-label="Expand player"
+          onClick={() =>
+            runWithViewTransition(() =>
+              useUiStore.getState().setNowPlayingOpen(true),
+            )
+          }
+        >
+          <CrossFadeArt src={cover} npThumb={!npOpen} />
+        </button>
         <div className="player-bar__text">
           <p className="player-bar__title">{track?.title ?? "Nothing playing"}</p>
           <p className="player-bar__artist">{track?.artist ?? "—"}</p>

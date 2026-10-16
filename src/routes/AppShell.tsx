@@ -5,6 +5,7 @@ import { Titlebar } from "@/components/titlebar/Titlebar";
 import { Sidebar } from "@/components/sidebar/Sidebar";
 import { PlayerBar } from "@/components/player/PlayerBar";
 import { SearchOverlay } from "@/components/search/SearchOverlay";
+import { NowPlaying } from "@/components/nowplaying/NowPlaying";
 import { Aurora } from "@/visuals/aurora";
 import { VisualizerHost } from "@/visuals/VisualizerHost";
 import "./appshell.css";
@@ -28,6 +29,7 @@ export function AppShell() {
         </main>
       </div>
       <PlayerBar />
+      <NowPlaying />
       <SearchOverlay />
     </div>
   );

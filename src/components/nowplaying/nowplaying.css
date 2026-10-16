@@ -1,0 +1,204 @@
+/* P6.4 expanded Now Playing overlay: mostly transparent so the World
+   layer (aurora + visualizer) stays visible behind the glass panels.
+   Ambient-idle (DESIGN §6) lives here too: chrome fades via the
+   `ambient-idle` class on :root; restore uses --dur-base (220 ms). */
+
+.np {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  padding: calc(32px + var(--space-6)) var(--space-6) calc(72px + var(--space-6));
+  box-sizing: border-box;
+  background: rgba(7, 8, 12, 0.35);
+}
+
+.np__close {
+  position: absolute;
+  top: calc(32px + var(--space-2));
+  right: var(--space-4);
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--text-20);
+  cursor: pointer;
+  z-index: 1;
+}
+
+.np__close:hover {
+  color: var(--text-1);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.np__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+  gap: var(--space-6);
+  height: 100%;
+  align-items: center;
+}
+
+.np__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.np__meta {
+  text-align: center;
+}
+
+.np__title {
+  margin: 0;
+  font-size: var(--text-28);
+  color: var(--text-1);
+}
+
+.np__artist {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-14);
+  color: var(--text-3);
+}
+
+.np__transport {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.np__btn {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.np__btn:hover {
+  color: var(--text-1);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.np__btn--primary {
+  width: 48px;
+  height: 48px;
+  background: var(--accent);
+  color: #fff;
+}
+
+.np__btn--primary:hover {
+  background: var(--accent);
+  color: #fff;
+  opacity: 0.9;
+}
+
+.np__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-height: 0;
+  max-height: 100%;
+}
+
+.np__panel {
+  border-radius: var(--radius-panel);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 0;
+}
+
+.np__panel--queue {
+  flex: 1;
+}
+
+.np__panel-title {
+  margin: 0;
+  font-size: var(--text-12);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+}
+
+.np__placeholder {
+  margin: 0;
+  font-size: var(--text-13);
+  color: var(--text-3);
+}
+
+.np__queue {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.np__queue-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-2);
+  border: none;
+  border-radius: var(--radius-ctrl);
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--text-13);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.np__queue-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-1);
+}
+
+.np__queue-item--active {
+  color: var(--text-1);
+  background: color-mix(in oklab, var(--accent) 18%, transparent);
+}
+
+/* Ambient idle: chrome fades (500 ms in, 220 ms back), World scales up. */
+.np__chrome {
+  transition: opacity var(--dur-base) ease;
+}
+
+.ambient-idle .np__chrome {
+  opacity: 0;
+  transition-duration: var(--dur-slow);
+}
+
+.aurora,
+.viz {
+  transition: transform var(--dur-base) ease;
+}
+
+.ambient-idle .aurora,
+.ambient-idle .viz {
+  transform: scale(1.08);
+  transition-duration: var(--dur-slow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .np__chrome,
+  .aurora,
+  .viz {
+    transition: none;
+  }
+  .ambient-idle .aurora,
+  .ambient-idle .viz {
+    transform: none;
+  }
+}

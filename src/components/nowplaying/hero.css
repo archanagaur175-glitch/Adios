@@ -1,0 +1,88 @@
+/* P6.4 hero art: vinyl disc + tilt/glare layers (see nowplaying.css for
+   the overlay that hosts it). */
+
+.hero {
+  position: relative;
+  width: min(42vh, 380px);
+  aspect-ratio: 1;
+  flex: none;
+}
+
+.hero__vinyl {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, #1a1c24 0 18%, transparent 18.5%),
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      #0c0d12 0 2px,
+      #15171f 2px 4px
+    );
+  border: 1px solid var(--stroke);
+  transform: translateX(-34%);
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+
+.hero__vinyl--spin {
+  animation: hero-spin 6s linear infinite;
+}
+
+.hero__vinyl--spin[data-paused] {
+  animation-play-state: paused;
+}
+
+@keyframes hero-spin {
+  to {
+    transform: translateX(-34%) rotate(360deg);
+  }
+}
+
+.hero__art {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  border: 1px solid var(--stroke);
+  box-shadow: var(--shadow-panel);
+  transition: transform var(--dur-fast) ease-out;
+  will-change: transform;
+}
+
+.hero__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero__note {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  background: var(--glass);
+  color: var(--text-3);
+  font-size: var(--text-72);
+}
+
+.hero__glare {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-card);
+  pointer-events: none;
+  background: radial-gradient(
+    circle at var(--gx, 50%) var(--gy, 50%),
+    rgba(255, 255, 255, 0.22) 0%,
+    transparent 55%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__vinyl {
+    transform: translateX(-34%);
+    animation: none;
+  }
+  .hero__art {
+    transition: none;
+  }
+}

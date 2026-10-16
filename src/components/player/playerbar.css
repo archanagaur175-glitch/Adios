@@ -42,6 +42,16 @@
   font-size: var(--text-20);
 }
 
+/* P6.4: the cover doubles as the expand button. */
+.player-bar__cover-btn {
+  padding: 0;
+  cursor: pointer;
+}
+
+.player-bar__cover-btn:hover {
+  border-color: color-mix(in oklab, var(--accent) 55%, var(--stroke));
+}
+
 /* P6.2 cross-fade: both layers stack; outgoing fades out beneath. */
 .pb-art {
   position: absolute;

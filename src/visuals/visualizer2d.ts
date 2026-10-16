@@ -16,7 +16,11 @@ export interface VizController {
   stop(): void;
   /** Clear the canvas (Eco / dispose); plain stop keeps the last frame. */
   clear(): void;
+  /** Play/pause accent pulse (DESIGN §8): briefly boost the glow pass. */
+  pulse(): void;
   readonly lastFps: number;
+  /** ms left on the current pulse (dev/gate hook). */
+  readonly boostRemaining: number;
 }
 
 const REPORT_MS = 2000;
@@ -32,6 +36,7 @@ export function createVisualizer(canvas: HTMLCanvasElement): VizController {
   let frames = 0;
   let windowStart = 0;
   let lastFps = 0;
+  let boostUntil = 0;
   let colorCheck = 0;
   let accent = "#7c5cff";
   let accent2 = "#5546c8";
@@ -127,12 +132,15 @@ export function createVisualizer(canvas: HTMLCanvasElement): VizController {
     ctx.stroke();
     ctx.globalAlpha = 1;
 
-    // Glow pass (Med = soft halo on the ring; High = fatter + brighter).
+    // Glow pass (Med = soft halo on the ring; High = fatter + brighter;
+    // the play/pause accent pulse briefly boosts both).
     if (cfg.glow !== "off") {
+      const boost =
+        now < boostUntil ? 1 - (boostUntil - now) / 500 : 0;
       ctx.save();
-      ctx.globalAlpha = cfg.glow === "full" ? 0.5 : 0.3;
+      ctx.globalAlpha = (cfg.glow === "full" ? 0.5 : 0.3) * (1 + boost * 1.5);
       ctx.shadowColor = accent;
-      ctx.shadowBlur = cfg.glow === "full" ? 18 : 9;
+      ctx.shadowBlur = (cfg.glow === "full" ? 18 : 9) + boost * 10;
       ctx.lineWidth = unit * (cfg.glow === "full" ? 0.012 : 0.008);
       ctx.strokeStyle = accent2;
       ctx.beginPath();
@@ -185,8 +193,14 @@ export function createVisualizer(canvas: HTMLCanvasElement): VizController {
       this.stop();
       ctx?.clearRect(0, 0, canvas.width, canvas.height);
     },
+    pulse() {
+      boostUntil = performance.now() + 500;
+    },
     get lastFps() {
       return lastFps;
+    },
+    get boostRemaining() {
+      return Math.max(0, boostUntil - performance.now());
     },
   };
 }
