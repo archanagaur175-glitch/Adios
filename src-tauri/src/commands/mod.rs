@@ -2,6 +2,7 @@ pub mod cover;
 pub mod enrich;
 pub mod library;
 pub mod lyrics;
+pub mod playlists;
 pub mod resolver;
 pub mod scan;
 pub mod search;

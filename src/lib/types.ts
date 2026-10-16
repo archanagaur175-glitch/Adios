@@ -92,6 +92,50 @@ export interface EvictStats {
   remainingBytes: number;
 }
 
+// ---------- Playlists (P8.2) ----------
+
+/** List row: playlist metadata + member count. */
+export interface PlaylistSummary {
+  id: number;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  trackCount: number;
+}
+
+/** Detail payload: metadata + members in position order. */
+export interface PlaylistDetail {
+  id: number;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  tracks: Track[];
+}
+
+/** Stable identity for one exported track (never a row id). */
+export interface TrackRef {
+  path?: string | null;
+  url?: string | null;
+  mbRecordingId?: string | null;
+  artist: string;
+  title: string;
+  durationMs?: number | null;
+}
+
+/** Versioned JSON export shape (`version` guards schema drift). */
+export interface PlaylistExport {
+  version: number;
+  name: string;
+  tracks: TrackRef[];
+}
+
+/** Result of one import: how many refs resolved vs. were missing. */
+export interface ImportResult {
+  playlistId: number;
+  added: number;
+  missing: number;
+}
+
 // ---------- Lyrics (P7.1) ----------
 
 /** LRCLIB answer for one track (mirrors Rust `LyricsPayload`). */

@@ -142,7 +142,17 @@ pub fn run() {
             commands::search::search_local,
             commands::cover::fetch_cover,
             commands::enrich::enrich_tracks,
-            commands::lyrics::get_lyrics
+            commands::lyrics::get_lyrics,
+            commands::playlists::playlist_create,
+            commands::playlists::playlist_rename,
+            commands::playlists::playlist_delete,
+            commands::playlists::playlist_list,
+            commands::playlists::playlist_detail,
+            commands::playlists::playlist_add_track,
+            commands::playlists::playlist_remove_track,
+            commands::playlists::playlist_reorder,
+            commands::playlists::playlist_export_file,
+            commands::playlists::playlist_import_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

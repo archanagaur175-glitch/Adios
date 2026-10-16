@@ -1,11 +1,15 @@
 pub mod fts;
 pub mod lyrics_cache;
 pub mod migrations;
+pub mod playlist;
+pub mod playlist_io;
 pub mod queries;
 pub mod track_mb;
 
 #[cfg(test)]
 mod fts_tests;
+#[cfg(test)]
+mod playlist_tests;
 #[cfg(test)]
 mod tests;
 
