@@ -1,29 +1,20 @@
 /** Ctrl+K search overlay (P5.3): local FTS5 results arrive instantly,
     MusicBrainz tracks/albums/artists append after the 275 ms debounce (D12).
-    Arrow keys walk the flattened grouped list; Enter plays local picks. */
+    Arrow keys walk the flattened grouped list; Enter plays local picks, and
+    (P9.5) MB track rows stream via the resolve_query chain. */
 
-import { useEffect, useMemo, useRef } from "react";
-import { searchLocal, searchMetadata } from "@/lib/api";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { playOnlinePick } from "@/lib/onlinePlay";
 import { usePlayerStore } from "@/store/playerStore";
 import { useUiStore } from "@/store/uiStore";
-import type { MbArtistItem, MbRecordingItem, MbReleaseItem } from "@/lib/types";
 import { useSearchStore } from "@/store/searchStore";
+import { useSearchLayers } from "./useSearchLayers";
 import {
   buildGroups,
   flattenGroups,
   SearchResultsList,
   type ResultRow,
 } from "./SearchResults";
-
-const DEBOUNCE_MS = 275;
-
-const creditNames = (
-  credit?: { artist?: { name: string } | null }[] | null,
-): string =>
-  (credit ?? [])
-    .map((c) => c.artist?.name)
-    .filter((n): n is string => Boolean(n))
-    .join(", ");
 
 export function SearchOverlay() {
   const open = useSearchStore((s) => s.open);
@@ -35,74 +26,10 @@ export function SearchOverlay() {
   const onlineAlbums = useSearchStore((s) => s.onlineAlbums);
   const onlineArtists = useSearchStore((s) => s.onlineArtists);
   const inputRef = useRef<HTMLInputElement>(null);
+  const pickingRef = useRef(false);
+  const [pickingKey, setPickingKey] = useState<string | null>(null);
 
-  // Local layer: query on every keystroke, stale responses dropped.
-  useEffect(() => {
-    const q = query.trim();
-    if (!q) {
-      useSearchStore.getState().setLocalResults([]);
-      return;
-    }
-    let cancelled = false;
-    searchLocal(q)
-      .then((rows) => {
-        if (!cancelled) useSearchStore.getState().setLocalResults(rows);
-      })
-      .catch((err) => console.error("[search] local failed:", err));
-    return () => {
-      cancelled = true;
-    };
-  }, [query]);
-
-  // Online layer: 275 ms debounce, three MB kinds in parallel (the client
-  // serializes them through the 1-req/s queue), stale runs cancelled.
-  useEffect(() => {
-    const q = query.trim();
-    if (!q) {
-      const s = useSearchStore.getState();
-      s.setOnlineResults({ tracks: [], albums: [], artists: [] });
-      s.setOnlinePending(false);
-      return;
-    }
-    let cancelled = false;
-    useSearchStore.getState().setOnlinePending(true);
-    const timer = window.setTimeout(() => {
-      Promise.all([
-        searchMetadata<MbRecordingItem>("recording", q),
-        searchMetadata<MbReleaseItem>("release", q),
-        searchMetadata<MbArtistItem>("artist", q),
-      ])
-        .then(([rec, rel, art]) => {
-          if (cancelled) return;
-          useSearchStore.getState().setOnlineResults({
-            tracks: rec.items.map((r) => ({
-              mbid: r.id,
-              title: r.title,
-              artist: creditNames(r.artistCredit),
-              durationMs: r.length ?? undefined,
-            })),
-            albums: rel.items.map((r) => ({
-              mbid: r.id,
-              title: r.title,
-              artist: creditNames(r.artistCredit),
-            })),
-            artists: art.items.map((r) => ({
-              mbid: r.id,
-              title: r.name,
-              artist: r.disambiguation ?? "",
-            })),
-          });
-        })
-        .catch((err) => console.error("[search] musicbrainz failed:", err))
-        .finally(() => {
-          if (!cancelled) useSearchStore.getState().setOnlinePending(false);
-        });
-    }, DEBOUNCE_MS);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [query]);
+  useSearchLayers(query);
 
   const groups = useMemo(
     () => buildGroups({ localResults, onlineTracks, onlineAlbums, onlineArtists }),
@@ -114,6 +41,26 @@ export function SearchOverlay() {
     if (open) inputRef.current?.focus();
   }, [open]);
 
+  /** P9.5: MusicBrainz track row → resolve_query chain → transient stream
+      track → play (logic in lib/onlinePlay.ts; row shows "Resolving…"). */
+  async function playOnline(row: ResultRow): Promise<void> {
+    if (pickingRef.current || !row.mbid) return;
+    pickingRef.current = true;
+    setPickingKey(row.key);
+    try {
+      const started = await playOnlinePick({
+        mbid: row.mbid,
+        title: row.title,
+        artist: row.sub,
+        durationMs: row.durationMs,
+      });
+      if (started) useSearchStore.getState().setOpen(false);
+    } finally {
+      pickingRef.current = false;
+      setPickingKey(null);
+    }
+  }
+
   function pick(row?: ResultRow) {
     if (!row) return;
     if (row.trackId != null) {
@@ -122,8 +69,12 @@ export function SearchOverlay() {
       useSearchStore.getState().setOpen(false);
       return;
     }
+    if (row.mbid) {
+      void playOnline(row);
+      return;
+    }
     useUiStore.getState().pushToast({
-      message: "MB matching ships with import enrichment (P5.4)",
+      message: "Album/artist matching ships with import enrichment (P5.4)",
       tone: "info",
     });
   }
@@ -187,6 +138,7 @@ export function SearchOverlay() {
           <SearchResultsList
             groups={groups}
             activeIndex={activeIndex}
+            pickingKey={pickingKey}
             onHover={(i) => useSearchStore.getState().setActiveIndex(i)}
             onPick={pick}
           />

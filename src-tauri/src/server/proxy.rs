@@ -54,7 +54,7 @@ pub async fn remote_response(state: &ServerState, url: &str, range_header: Optio
 
     // OQ3: never send a Range-less GET upstream — synthesize `bytes=0-`
     // for full-file fetches (client Range headers pass through unchanged).
-    let mut req = state
+    let req = state
         .client
         .get(url)
         .header(axum::http::header::RANGE, range_header.unwrap_or("bytes=0-"));

@@ -13,6 +13,9 @@ export interface ResultRow {
   right?: string;
   /** Present for local rows — picking one starts playback. */
   trackId?: number;
+  /** P9.5: present for MusicBrainz track rows — picking one resolves+streams. */
+  mbid?: string;
+  durationMs?: number;
 }
 
 export interface ResultGroup {
@@ -39,16 +42,23 @@ export function buildGroups(input: GroupInput): ResultGroup[] {
   }));
   if (local.length > 0) groups.push({ label: "In your library", rows: local });
 
-  const addMb = (label: string, items: OnlineResult[], withDuration: boolean) => {
+  const addMb = (
+    label: string,
+    items: OnlineResult[],
+    withDuration: boolean,
+    withMbid = false,
+  ) => {
     const rows = items.map((r, i) => ({
       key: `${label}-${r.mbid || i}`,
       title: r.title,
       sub: r.artist || undefined,
       right: withDuration ? formatDuration(r.durationMs) : undefined,
+      mbid: withMbid ? r.mbid : undefined,
+      durationMs: withDuration ? r.durationMs : undefined,
     }));
     if (rows.length > 0) groups.push({ label, rows });
   };
-  addMb("MusicBrainz tracks", input.onlineTracks, true);
+  addMb("MusicBrainz tracks", input.onlineTracks, true, true);
   addMb("MusicBrainz albums", input.onlineAlbums, false);
   addMb("MusicBrainz artists", input.onlineArtists, false);
 
@@ -63,11 +73,19 @@ export function flattenGroups(groups: ResultGroup[]): ResultRow[] {
 interface Props {
   groups: ResultGroup[];
   activeIndex: number;
+  /** P9.5: key of the row currently resolving through the stream chain. */
+  pickingKey?: string | null;
   onHover: (index: number) => void;
   onPick: (row: ResultRow) => void;
 }
 
-export function SearchResultsList({ groups, activeIndex, onHover, onPick }: Props) {
+export function SearchResultsList({
+  groups,
+  activeIndex,
+  pickingKey,
+  onHover,
+  onPick,
+}: Props) {
   let offset = 0;
   return (
     <>
@@ -97,8 +115,12 @@ export function SearchResultsList({ groups, activeIndex, onHover, onPick }: Prop
                         <p className="truncate text-12 text-ink-3">{row.sub}</p>
                       )}
                     </div>
-                    {row.right && (
-                      <span className="text-12 tabular text-ink-3">{row.right}</span>
+                    {pickingKey === row.key ? (
+                      <span className="text-12 text-accent">Resolving…</span>
+                    ) : (
+                      row.right && (
+                        <span className="text-12 tabular text-ink-3">{row.right}</span>
+                      )
                     )}
                   </li>
                 );
