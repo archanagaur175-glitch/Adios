@@ -77,3 +77,17 @@ export interface MbReleaseItem {
   artistCredit?: MbCreditRef[] | null;
   date?: string | null;
 }
+
+// ---------- Lyrics (P7.1) ----------
+
+/** LRCLIB answer for one track (mirrors Rust `LyricsPayload`). */
+export interface LyricsPayload {
+  found: boolean;
+  /** Raw LRC text (timestamps `[mm:ss.xx]`); null when plain-only. */
+  synced?: string | null;
+  plain?: string | null;
+  instrumental: boolean;
+  lrclibId?: number | null;
+  /** "cache" | "network" | "none". */
+  source: string;
+}

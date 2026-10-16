@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { SearchPage, Track } from "@/lib/types";
+import type { LyricsPayload, SearchPage, Track } from "@/lib/types";
 
 /** True when running inside the Tauri webview (not plain vite/preview). */
 export const inTauri = "__TAURI_INTERNALS__" in window;
@@ -179,4 +179,16 @@ export async function searchMetadata<T>(
 ): Promise<SearchPage<T>> {
   if (!inTauri || !query.trim()) return { count: 0, offset: 0, items: [] };
   return invoke<SearchPage<T>>("search_metadata", { kind, query });
+}
+
+// ---------- Lyrics (P7.1) ----------
+
+/**
+ * LRCLIB lyrics for one track (local-first: `lyrics_cache` hit or negative
+ * row returns with zero network). `found:false` = known absent; the command
+ * only rejects on transient transport failure (nothing cached then).
+ */
+export async function getLyrics(trackId: number): Promise<LyricsPayload> {
+  if (!inTauri) return { found: false, instrumental: false, source: "none" };
+  return invoke<LyricsPayload>("get_lyrics", { trackId });
 }

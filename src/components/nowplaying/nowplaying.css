@@ -1,7 +1,5 @@
 /* P6.4 expanded Now Playing overlay: mostly transparent so the World
-   layer (aurora + visualizer) stays visible behind the glass panels.
-   Ambient-idle (DESIGN §6) lives here too: chrome fades via the
-   `ambient-idle` class on :root; restore uses --dur-base (220 ms). */
+   layer (aurora + visualizer) stays visible; ambient-idle lives here too. */
 
 .np {
   position: fixed;
@@ -96,8 +94,6 @@
 }
 
 .np__btn--primary:hover {
-  background: var(--accent);
-  color: #fff;
   opacity: 0.9;
 }
 

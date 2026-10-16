@@ -1,4 +1,5 @@
 pub mod fts;
+pub mod lyrics_cache;
 pub mod migrations;
 pub mod queries;
 pub mod track_mb;

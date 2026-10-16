@@ -71,6 +71,11 @@ pub fn run() {
             // client does not share the MB 1-req/s queue.
             app.manage(meta::cover_art::CoverArtClient::default());
 
+            // LRCLIB lyrics (P7.1): cache-first, own 1-req/s queue (never MB's).
+            app.manage(meta::lrclib::LyricsClient::with_default_transport(
+                shared_db.clone(),
+            ));
+
             let loopback =
                 server::start(shared_db, cache_dir, chain, table).expect("loopback server");
             println!("[server] listening on {}", loopback.base_url());
@@ -135,7 +140,8 @@ pub fn run() {
             commands::search::search_metadata,
             commands::search::search_local,
             commands::cover::fetch_cover,
-            commands::enrich::enrich_tracks
+            commands::enrich::enrich_tracks,
+            commands::lyrics::get_lyrics
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

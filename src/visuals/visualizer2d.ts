@@ -1,9 +1,6 @@
-/** P6.3 2D visualizer (DESIGN L1): radial ring + radiating bars + waveform
-    ring, additive `lighter` compositing. Own rAF with a per-tier fps cap;
-    the host starts it only while playing + visible (paused = last frame
-    stays, hidden = fully stopped). Palette colors refresh every ~500 ms,
-    never per frame. Every 2 s emits `[viz] fps=…` (console + Tauri event
-    the Rust side prints — same pattern as the P6.1 bands channel). */
+/** P6.3 2D visualizer (DESIGN L1): radial ring + bars + waveform, additive
+    `lighter`; per-tier fps-cap rAF gated on playing + visible (paused keeps
+    last frame). Colors refresh ~500 ms; `[viz] fps=…` every 2 s via event. */
 
 import { emit } from "@tauri-apps/api/event";
 import { getAnalyser } from "@/audio/graph";
@@ -19,8 +16,7 @@ export interface VizController {
   /** Play/pause accent pulse (DESIGN §8): briefly boost the glow pass. */
   pulse(): void;
   readonly lastFps: number;
-  /** ms left on the current pulse (dev/gate hook). */
-  readonly boostRemaining: number;
+  readonly boostRemaining: number; // ms left on the current pulse (dev hook)
 }
 
 const REPORT_MS = 2000;
@@ -132,11 +128,9 @@ export function createVisualizer(canvas: HTMLCanvasElement): VizController {
     ctx.stroke();
     ctx.globalAlpha = 1;
 
-    // Glow pass (Med = soft halo on the ring; High = fatter + brighter;
-    // the play/pause accent pulse briefly boosts both).
+    // Glow pass (Med soft halo; High fatter + brighter; pulse boosts both).
     if (cfg.glow !== "off") {
-      const boost =
-        now < boostUntil ? 1 - (boostUntil - now) / 500 : 0;
+      const boost = now < boostUntil ? 1 - (boostUntil - now) / 500 : 0;
       ctx.save();
       ctx.globalAlpha = (cfg.glow === "full" ? 0.5 : 0.3) * (1 + boost * 1.5);
       ctx.shadowColor = accent;

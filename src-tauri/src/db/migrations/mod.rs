@@ -6,8 +6,15 @@ pub struct Migration {
 
 /// Ordered, append-only migration list. Never edit an applied migration;
 /// add a new file + entry instead.
-pub const MIGRATIONS: &[Migration] = &[Migration {
-    version: 1,
-    name: "001_init",
-    sql: include_str!("m001_init.sql"),
-}];
+pub const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 1,
+        name: "001_init",
+        sql: include_str!("m001_init.sql"),
+    },
+    Migration {
+        version: 2,
+        name: "002_lyrics_cache",
+        sql: include_str!("m002_lyrics_cache.sql"),
+    },
+];
