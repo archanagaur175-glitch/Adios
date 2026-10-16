@@ -81,7 +81,7 @@ export default function PlaylistsPage() {
             type="button"
             onClick={() => void create()}
             disabled={!inTauri || !name.trim()}
-            className="rounded-ctrl bg-accent px-4 py-2 text-14 font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+            className="rounded-ctrl bg-accent px-4 py-2 text-14 font-medium text-[color:var(--on-accent)] transition hover:opacity-90 disabled:opacity-50"
           >
             New playlist
           </button>

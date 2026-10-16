@@ -3,6 +3,56 @@
 use super::cache;
 use super::test_util::{test_start, temp_file};
 
+/// googlevideo-style upstream: 403 unless the request carries a Range
+/// header (OQ3 — throttling detection punishes Range-less full GETs).
+async fn throttle_by_range(headers: axum::http::HeaderMap) -> axum::response::Response {
+    use axum::response::IntoResponse;
+    const LEN: usize = 2048;
+    if !headers.contains_key(axum::http::header::RANGE) {
+        return (axum::http::StatusCode::FORBIDDEN, "no Range").into_response();
+    }
+    axum::response::Response::builder()
+        .status(axum::http::StatusCode::PARTIAL_CONTENT)
+        .header("content-type", "audio/mp4")
+        .header("content-range", format!("bytes 0-{}/{}", LEN - 1, LEN))
+        .header("content-length", LEN)
+        .body(axum::body::Body::from(vec![7u8; LEN]))
+        .unwrap()
+}
+
+/// OQ3/P9.4: full-file fetches must send `Range: bytes=0-` upstream, a
+/// 206-from-zero is served to the client as 200, and the body is still
+/// tee'd into the disk cache. Without this, googlevideo 403s the fetch.
+#[tokio::test]
+async fn full_get_sends_range_header_and_converts_206_to_200() {
+    let app = axum::Router::new().route("/song", axum::routing::get(throttle_by_range));
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, app).await.expect("serve") });
+    let upstream_url = format!("http://{addr}/song");
+    let (server, db, cache_dir) = test_start();
+    let media = format!("{}/media/{}", server.base_url(), server.token);
+    let res = reqwest::Client::new()
+        .get(&media)
+        .query(&[("url", upstream_url.as_str())])
+        .send()
+        .await
+        .expect("request");
+    assert_eq!(res.status(), 200, "206-from-zero must be served as 200");
+    assert!(
+        res.headers().get("content-range").is_none(),
+        "full-body clients must not see Content-Range"
+    );
+    let body = res.bytes().await.unwrap();
+    assert_eq!(body.len(), 2048);
+    assert_eq!(body[0], 7);
+    let files: Vec<_> = std::fs::read_dir(&cache_dir).unwrap().map(|e| e.unwrap()).collect();
+    assert_eq!(files.len(), 1, "tee must cache the whole body");
+    assert_eq!(files[0].metadata().unwrap().len(), 2048);
+    let conn = db.lock().unwrap();
+    assert!(cache::cache_index_get(&conn, &upstream_url).is_some());
+}
+
 #[tokio::test]
 async fn cache_index_roundtrip_bookkeeping() {
     let conn = crate::db::open_memory().expect("db");

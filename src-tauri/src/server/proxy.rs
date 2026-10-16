@@ -1,7 +1,12 @@
 //! Remote proxy streaming (P4.3 / architecture §3.2 + P4.4 re-resolve).
 //! Remote URL → reqwest → client; full responses are tee'd to the disk
-//! cache via temp→rename and indexed in `cache_index`; Range requests
-//! forward upstream and are never cached (partial files).
+//! cache via temp→rename and indexed in `cache_index`; client Range
+//! requests forward upstream and are never cached (partial files).
+//!
+//! P9.4 (OQ3): googlevideo throttles Range-less GETs with 403 — every
+//! upstream request now carries a Range header. Full-file fetches use
+//! `Range: bytes=0-`; a 206 whose range starts at byte 0 IS the whole
+//! body, so it is tee'd into the cache and served to the client as 200.
 //!
 //! P4.4: upstream 401/403/404/410 (expired googlevideo URL) triggers
 //! exactly ONE re-resolve through the chain (`reresolve.rs`) before the
@@ -47,10 +52,12 @@ pub async fn remote_response(state: &ServerState, url: &str, range_header: Optio
         }
     }
 
-    let mut req = state.client.get(url);
-    if let Some(range) = range_header {
-        req = req.header(axum::http::header::RANGE, range);
-    }
+    // OQ3: never send a Range-less GET upstream — synthesize `bytes=0-`
+    // for full-file fetches (client Range headers pass through unchanged).
+    let mut req = state
+        .client
+        .get(url)
+        .header(axum::http::header::RANGE, range_header.unwrap_or("bytes=0-"));
     let upstream = match req.send().await {
         Ok(res) => res,
         Err(err) => return plain(StatusCode::BAD_GATEWAY, format!("upstream error: {err}")),
@@ -84,7 +91,19 @@ pub async fn remote_response(state: &ServerState, url: &str, range_header: Optio
     let content_length = upstream.content_length();
     let content_range = upstream.headers().get(CONTENT_RANGE).cloned();
 
-    let body = if range_header.is_none() {
+    // OQ3: a client full GET (no Range) was sent upstream as `bytes=0-`.
+    // A 206 whose range starts at byte 0 carries the whole body — treat it
+    // as a 200 and still tee it into the cache. A 206 starting elsewhere
+    // (misbehaving server) is streamed through un-cached, unconverted.
+    let full_from_zero = range_header.is_none()
+        && status == StatusCode::PARTIAL_CONTENT
+        && content_range
+            .as_ref()
+            .and_then(|v| v.to_str().ok())
+            .is_some_and(|s| s.starts_with("bytes 0-"));
+    let tee_ok = range_header.is_none() && (status == StatusCode::OK || full_from_zero);
+
+    let body = if tee_ok {
         let tee = tee_open(&state.cache_dir, state.db.clone(), url, &mime, upstream, content_length)
             .await;
         tee_body(tee)
@@ -100,15 +119,22 @@ pub async fn remote_response(state: &ServerState, url: &str, range_header: Optio
     };
 
     let mut res = Response::new(body);
-    *res.status_mut() = status;
+    *res.status_mut() = if full_from_zero {
+        StatusCode::OK
+    } else {
+        status
+    };
     let h = res.headers_mut();
     h.insert(ACCEPT_RANGES, HeaderValue::from_static("bytes"));
     h.insert(CONTENT_TYPE, mime_header);
     if let Some(len) = content_length {
         h.insert(CONTENT_LENGTH, HeaderValue::from_str(&len.to_string()).unwrap());
     }
-    if let Some(cr) = content_range {
-        h.insert(CONTENT_RANGE, cr);
+    // Content-Range is only meaningful to clients that asked for a Range.
+    if range_header.is_some() {
+        if let Some(cr) = content_range {
+            h.insert(CONTENT_RANGE, cr);
+        }
     }
     res
 }

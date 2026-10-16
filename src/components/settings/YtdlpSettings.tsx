@@ -5,7 +5,7 @@ import { updateYtdlp } from "@/lib/resolverApi";
 import { useSettingsStore } from "@/store/settingsStore";
 
 const ctrlBtn =
-  "rounded-ctrl bg-accent px-3 py-1.5 text-13 font-medium text-white transition hover:opacity-90 disabled:opacity-50";
+  "rounded-ctrl bg-accent px-3 py-1.5 text-13 font-medium text-[color:var(--on-accent)] transition hover:opacity-90 disabled:opacity-50";
 
 interface Progress {
   stage: string;
@@ -25,15 +25,14 @@ export function YtdlpSettings() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    // UI-only progress/version display. The store's ytdlpPath is owned by
+    // the app-lifetime listener in lib/ytdlpSync.ts (OQ2: survives unmount).
     let unlisten: (() => void) | undefined;
     void listen<Progress>("ytdlp-progress", (event) => {
       setProgress(event.payload);
       if (event.payload.stage === "done" && event.payload.version) {
         setVersion(event.payload.version);
         setBusy(false);
-        if (event.payload.path) {
-          useSettingsStore.getState().set({ ytdlpPath: event.payload.path });
-        }
       }
     }).then((fn) => {
       unlisten = fn;

@@ -97,7 +97,7 @@ export default function LibraryPage() {
             type="button"
             onClick={() => void handleScan()}
             disabled={scanning || enriching || !inTauri}
-            className="rounded-ctrl bg-accent px-4 py-2 text-14 font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+            className="rounded-ctrl bg-accent px-4 py-2 text-14 font-medium text-[color:var(--on-accent)] transition hover:opacity-90 disabled:opacity-50"
           >
             {scanning ? "Scanning…" : enriching ? "Enriching…" : "Scan folder"}
           </button>

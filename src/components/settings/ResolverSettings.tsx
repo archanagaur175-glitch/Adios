@@ -64,7 +64,7 @@ export function ResolverSettings() {
           type="button"
           onClick={() => void checkAll()}
           disabled={checking || !inTauri}
-          className={`${ctrlBtn} bg-accent text-white hover:opacity-90`}
+          className={`${ctrlBtn} bg-accent text-[color:var(--on-accent)] hover:opacity-90`}
         >
           {checking ? "Checking…" : "Check resolvers"}
         </button>
@@ -144,7 +144,7 @@ export function ResolverSettings() {
           type="button"
           onClick={save}
           disabled={!inTauri}
-          className={`${ctrlBtn} bg-accent text-white hover:opacity-90`}
+          className={`${ctrlBtn} bg-accent text-[color:var(--on-accent)] hover:opacity-90`}
         >
           {savedNote ? "Saved ✓" : "Save"}
         </button>

@@ -5,6 +5,7 @@
 
 import { useLibraryStore } from "@/store/libraryStore";
 import { usePlayerStore } from "@/store/playerStore";
+import { onAccentFor } from "@/lib/color";
 import type { Track } from "@/lib/types";
 
 const ROOT = () => document.documentElement.style;
@@ -17,6 +18,7 @@ function clearVars(): void {
     "--palette-1",
     "--palette-2",
     "--palette-3",
+    "--on-accent",
   ]) {
     root.removeProperty(name);
   }
@@ -42,6 +44,9 @@ export function applyTrackPalette(track: Track | null | undefined): void {
 
   if (track.accent) root.setProperty("--palette-accent", track.accent);
   else root.removeProperty("--palette-accent");
+  // OQ4: readable button/chip text for this accent (falls back to the
+  // token default when the track has no accent).
+  root.setProperty("--on-accent", onAccentFor(track.accent));
   if (track.accent2) root.setProperty("--palette-accent2", track.accent2);
   else root.removeProperty("--palette-accent2");
   colors.forEach((color, i) => {

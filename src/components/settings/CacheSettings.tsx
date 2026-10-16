@@ -6,7 +6,7 @@ import { useSettingsStore } from "@/store/settingsStore";
 const inputCls =
   "w-28 rounded-ctrl border border-stroke bg-glass px-3 py-1.5 text-14 tabular text-ink-1 focus:border-accent";
 const ctrlBtn =
-  "rounded-ctrl bg-accent px-3 py-1.5 text-13 font-medium text-white transition hover:opacity-90 disabled:opacity-50";
+  "rounded-ctrl bg-accent px-3 py-1.5 text-13 font-medium text-[color:var(--on-accent)] transition hover:opacity-90 disabled:opacity-50";
 
 const MIN_MB = 16;
 const MAX_MB = 100_000;

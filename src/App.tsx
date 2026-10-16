@@ -8,6 +8,7 @@ import { Announcer } from "@/components/common/Announcer";
 import { ImmersiveLyrics } from "@/components/lyrics/ImmersiveLyrics";
 import { inTauri, listTracks } from "@/lib/api";
 import { attachSessionPersist, restoreSession } from "@/lib/session";
+import { initYtdlpPathSync } from "@/lib/ytdlpSync";
 import { useLibraryStore } from "@/store/libraryStore";
 import { initBandsBridge } from "@/visuals/audioBandsBridge";
 import { initBatterySuggest } from "@/visuals/batterySuggest";
@@ -36,6 +37,8 @@ function App() {
     const stopIdle = initAmbientIdle();
     // P8.3: persist queue/position/volume; restore paused after the library.
     const detachPersist = attachSessionPersist();
+    // P9.4 (OQ2): keep ytdlpPath fresh even if Settings unmounts mid-update.
+    const detachYtdlpSync = initYtdlpPathSync();
     if (inTauri) {
       void listTracks()
         .then(useLibraryStore.getState().setTracks)
@@ -47,6 +50,7 @@ function App() {
     void runSmokeIfEnabled();
     return () => {
       detachPersist();
+      detachYtdlpSync();
       stopBands();
       stopPalette();
       stopBattery();

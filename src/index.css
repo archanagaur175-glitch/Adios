@@ -16,6 +16,7 @@
   --color-ink-3: var(--text-3);
   --color-accent: var(--accent);
   --color-accent-2: var(--accent-2);
+  --color-on-accent: var(--on-accent);
   --color-danger: var(--danger);
   --color-stroke: var(--stroke);
 

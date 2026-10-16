@@ -18,6 +18,10 @@
   --danger: #ff5c7a;
   --accent: #7c5cff; /* dynamic from album art; fallback */
   --accent-2: #2de2e6; /* dynamic secondary; fallback */
+  /* OQ4: text color for accent-filled controls. Default pairs with the
+     fallback accent above (dark text = 4.8:1); palette.ts overrides per
+     track by luminance (see lib/color.ts). */
+  --on-accent: #07080c;
 
   /* Type */
   --font-ui: "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif;
