@@ -95,6 +95,11 @@ pub fn run() {
                 println!("[bands] {}", event.payload());
             });
 
+            // P6.3: visualizer fps/tier proof lines.
+            let _ = app.listen("viz", |event| {
+                println!("[viz] {}", event.payload());
+            });
+
             // Debug-only smoke harness: run one scan at startup so the
             // real command + lofty path can be verified headlessly.
             #[cfg(debug_assertions)]

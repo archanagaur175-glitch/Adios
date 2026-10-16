@@ -1,0 +1,34 @@
+/* P6.3 — World-layer canvas + Eco mode.
+   The canvas sits above the aurora blobs (same z: -1, later in the DOM)
+   and below all content. `.eco` (toggled on :root from VisualizerHost)
+   strips every backdrop-filter and solidifies the glass tokens — the
+   declaration count stays within the ≤4 budget (this is the 4th). */
+
+.viz {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.viz[hidden] {
+  display: none;
+}
+
+.eco {
+  --glass: #161924f2;
+  --glass-strong: #161924fa;
+}
+
+.eco .glass,
+.eco .glass-strong,
+.eco .player-bar {
+  backdrop-filter: none;
+}
+
+/* Eco = static aurora (DESIGN §7) on top of the existing reduced-motion rule. */
+.eco .aurora__drift {
+  animation-play-state: paused;
+}

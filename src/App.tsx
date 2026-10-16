@@ -7,6 +7,7 @@ import { ToastHost } from "@/components/common/ToastHost";
 import { inTauri, listTracks } from "@/lib/api";
 import { useLibraryStore } from "@/store/libraryStore";
 import { initBandsBridge } from "@/visuals/audioBandsBridge";
+import { initBatterySuggest } from "@/visuals/batterySuggest";
 import { initPaletteWiring } from "@/visuals/palette";
 import { AppShell } from "@/routes/AppShell";
 import HomePage from "@/routes/Home";
@@ -25,6 +26,8 @@ function App() {
     // → --palette-* vars. StrictMode double-mount is handled by cleanup.
     const stopBands = initBandsBridge();
     const stopPalette = initPaletteWiring();
+    // P6.3: one-time Eco suggestion when the battery drops below 20%.
+    const stopBattery = initBatterySuggest();
     if (inTauri) {
       void listTracks()
         .then(useLibraryStore.getState().setTracks)
@@ -36,6 +39,7 @@ function App() {
     return () => {
       stopBands();
       stopPalette();
+      stopBattery();
     };
   }, []);
 

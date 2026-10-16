@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/sidebar/Sidebar";
 import { PlayerBar } from "@/components/player/PlayerBar";
 import { SearchOverlay } from "@/components/search/SearchOverlay";
 import { Aurora } from "@/visuals/aurora";
+import { VisualizerHost } from "@/visuals/VisualizerHost";
 import "./appshell.css";
 
 export function AppShell() {
@@ -15,6 +16,7 @@ export function AppShell() {
   return (
     <div className="app-surface">
       <Aurora />
+      <VisualizerHost />
       <Titlebar />
       <div className="shell">
         <Sidebar

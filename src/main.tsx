@@ -5,6 +5,7 @@ import "./index.css";
 import { useSettingsStore } from "@/store/settingsStore";
 import { usePlayerStore } from "@/store/playerStore";
 import { useLibraryStore } from "@/store/libraryStore";
+import { useUiStore } from "@/store/uiStore";
 import { engine } from "@/audio/engine";
 
 void useSettingsStore.getState().hydrate();
@@ -15,6 +16,7 @@ if (import.meta.env.DEV) {
     engine,
     player: usePlayerStore,
     library: useLibraryStore,
+    ui: useUiStore,
   };
 }
 
