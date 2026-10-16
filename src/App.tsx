@@ -6,6 +6,7 @@ import { runSmokeIfEnabled } from "@/audio/smoke";
 import { ToastHost } from "@/components/common/ToastHost";
 import { ImmersiveLyrics } from "@/components/lyrics/ImmersiveLyrics";
 import { inTauri, listTracks } from "@/lib/api";
+import { attachSessionPersist, restoreSession } from "@/lib/session";
 import { useLibraryStore } from "@/store/libraryStore";
 import { initBandsBridge } from "@/visuals/audioBandsBridge";
 import { initBatterySuggest } from "@/visuals/batterySuggest";
@@ -32,15 +33,19 @@ function App() {
     const stopBattery = initBatterySuggest();
     // P6.4: ambient idle while Now Playing is expanded (DESIGN §6).
     const stopIdle = initAmbientIdle();
+    // P8.3: persist queue/position/volume; restore paused after the library.
+    const detachPersist = attachSessionPersist();
     if (inTauri) {
       void listTracks()
         .then(useLibraryStore.getState().setTracks)
+        .then(() => restoreSession())
         .finally(() => useLibraryStore.getState().setHydrated(true));
     } else {
       useLibraryStore.getState().setHydrated(true);
     }
     void runSmokeIfEnabled();
     return () => {
+      detachPersist();
       stopBands();
       stopPalette();
       stopBattery();

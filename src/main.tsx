@@ -7,6 +7,7 @@ import { usePlayerStore } from "@/store/playerStore";
 import { useLibraryStore } from "@/store/libraryStore";
 import { useUiStore } from "@/store/uiStore";
 import { engine } from "@/audio/engine";
+import { attachSessionPersist, flushSession, restoreSession } from "@/lib/session";
 
 void useSettingsStore.getState().hydrate();
 
@@ -17,6 +18,7 @@ if (import.meta.env.DEV) {
     player: usePlayerStore,
     library: useLibraryStore,
     ui: useUiStore,
+    session: { attachSessionPersist, restoreSession, flush: flushSession },
   };
 }
 

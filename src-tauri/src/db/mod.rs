@@ -4,12 +4,15 @@ pub mod migrations;
 pub mod playlist;
 pub mod playlist_io;
 pub mod queries;
+pub mod session;
 pub mod track_mb;
 
 #[cfg(test)]
 mod fts_tests;
 #[cfg(test)]
 mod playlist_tests;
+#[cfg(test)]
+mod session_tests;
 #[cfg(test)]
 mod tests;
 

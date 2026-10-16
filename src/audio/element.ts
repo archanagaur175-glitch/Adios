@@ -24,6 +24,12 @@ function onMeta(el: HTMLAudioElement, hooks: ElementHooks): void {
   if (el !== hooks.currentEl()) return;
   const duration = Number.isFinite(el.duration) ? el.duration : 0;
   usePlayerStore.getState().setDuration(duration);
+  // P8.3 boot restore: the queued seek may have fired before src was set —
+  // re-apply it here (paused path only; playback seeks sync via timeupdate).
+  const { positionSec, isPlaying } = usePlayerStore.getState();
+  if (!isPlaying && positionSec > 1 && el.currentTime < positionSec - 1) {
+    el.currentTime = positionSec;
+  }
 }
 
 function onEnded(el: HTMLAudioElement, hooks: ElementHooks): void {
