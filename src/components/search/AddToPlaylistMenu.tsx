@@ -1,12 +1,14 @@
-/** P9.7/P9.8: playlist picker for "+ Add" on online search rows. P9.8 #1:
-    the menu used to render inside the search dialog — which has
-    overflow-hidden — so it opened CLIPPED OUT OF VIEW (click looked dead).
-    It now portals to document.body with fixed coordinates anchored to the
-    clicked button, flipping upward near the viewport bottom. */
+/** P9.7/P9.8/P9.9: playlist picker for "+ Add" on online search rows.
+    P9.8 #1: portals to document.body with fixed coords — the search
+    dialog's overflow-hidden clipped the old absolute menu out of view.
+    P9.9: mounting PRIMES the pick (single-flight resolve runs while the
+    user browses playlists, so the add is usually instant) and the click
+    DELEGATES to the parent via onChoose — the menu closes immediately and
+    the row carries the progress badge (optimistic add). */
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { addPickToPlaylist, type OnlinePick } from "@/lib/onlinePlay";
+import { primeOnlinePick, type OnlinePick } from "@/lib/onlinePlay";
 import { listPlaylists } from "@/lib/playlistApi";
 import type { PlaylistSummary } from "@/lib/types";
 
@@ -24,14 +26,19 @@ interface Props {
   pick: OnlinePick;
   anchor: MenuAnchor;
   onClose: () => void;
-  /** Called after the row was added — the overlay flips it to "Added ✓". */
-  onAdded: () => void;
+  /** P9.9: parent starts the optimistic add and unmounts this menu. */
+  onChoose: (playlistId: number) => void;
 }
 
-export function AddToPlaylistMenu({ pick, anchor, onClose, onAdded }: Props) {
+export function AddToPlaylistMenu({ pick, anchor, onClose, onChoose }: Props) {
   const [playlists, setPlaylists] = useState<PlaylistSummary[]>([]);
-  const [busy, setBusy] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  // P9.9: intent shown the moment "+" is clicked — starts the shared
+  // flight (idempotent: an existing prime/cache hit is left alone).
+  useEffect(() => {
+    primeOnlinePick(pick);
+  }, [pick]);
 
   useEffect(() => {
     listPlaylists()
@@ -47,18 +54,6 @@ export function AddToPlaylistMenu({ pick, anchor, onClose, onAdded }: Props) {
       document.removeEventListener("mousedown", onDocClick);
     };
   }, [onClose]);
-
-  async function choose(playlistId: number): Promise<void> {
-    if (busy) return;
-    setBusy(true);
-    try {
-      const ok = await addPickToPlaylist(pick, playlistId);
-      if (ok) onAdded();
-      else onClose();
-    } finally {
-      setBusy(false);
-    }
-  }
 
   const flipUp = anchor.bottom + MENU_ESTIMATE_PX > window.innerHeight;
   const style: React.CSSProperties = {
@@ -85,11 +80,10 @@ export function AddToPlaylistMenu({ pick, anchor, onClose, onAdded }: Props) {
           key={p.id}
           type="button"
           role="menuitem"
-          disabled={busy}
-          onClick={() => void choose(p.id)}
-          className="block w-full truncate rounded-6 px-2 py-1.5 text-left text-13 text-ink-1 transition hover:bg-glass disabled:opacity-50"
+          onClick={() => onChoose(p.id)}
+          className="block w-full truncate rounded-6 px-2 py-1.5 text-left text-13 text-ink-1 transition hover:bg-glass"
         >
-          {busy ? "Adding…" : p.name}
+          {p.name}
         </button>
       ))}
     </div>,

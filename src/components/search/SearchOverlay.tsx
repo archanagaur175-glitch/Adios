@@ -5,7 +5,7 @@
     the resolve chain with a hover prime cache, and "+ Add" persists them
     into a playlist. */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   pickFromRow as rowPick,
   playOnlinePick,
@@ -16,7 +16,8 @@ import { useUiStore } from "@/store/uiStore";
 import { useSearchStore } from "@/store/searchStore";
 import { useSearchLayers } from "./useSearchLayers";
 import { useAutoPrime } from "./useAutoPrime";
-import { AddToPlaylistMenu, type MenuAnchor } from "./AddToPlaylistMenu";
+import { useAddMenu } from "./useAddMenu";
+import { AddToPlaylistMenu } from "./AddToPlaylistMenu";
 import {
   buildGroups,
   flattenGroups,
@@ -39,9 +40,8 @@ export function SearchOverlay() {
   const onlineArtists = useSearchStore((s) => s.onlineArtists);
   const inputRef = useRef<HTMLInputElement>(null);
   const pickingRef = useRef(false);
-  const [pickingKey, setPickingKey] = useState<string | null>(null);
-  const [addedKey, setAddedKey] = useState<string | null>(null);
-  const [menu, setMenu] = useState<{ row: ResultRow; anchor: MenuAnchor } | null>(null);
+  const { menu, pickingKey, addedKey, openMenu, closeMenu, choose, beginPick, endPick } =
+    useAddMenu();
 
   useSearchLayers(query);
   useAutoPrime(open, query, onlineTracks);
@@ -78,13 +78,13 @@ export function SearchOverlay() {
   async function playOnline(row: ResultRow): Promise<void> {
     if (pickingRef.current || !row.mbid) return;
     pickingRef.current = true;
-    setPickingKey(row.key);
+    beginPick(row.key);
     try {
       const started = await playOnlinePick(rowPick(row));
       if (started) useSearchStore.getState().setOpen(false);
     } finally {
       pickingRef.current = false;
-      setPickingKey(null);
+      endPick(row.key);
     }
   }
 
@@ -169,25 +169,15 @@ export function SearchOverlay() {
             addedKey={addedKey}
             onHover={(i) => useSearchStore.getState().setActiveIndex(i)}
             onPick={pick}
-            onAdd={(row, button) => {
-              const r = button.getBoundingClientRect();
-              setMenu({
-                row,
-                anchor: { left: r.left, top: r.top, bottom: r.bottom, right: r.right },
-              });
-            }}
+            onAdd={openMenu}
           />
         </div>
         {menu && (
           <AddToPlaylistMenu
             pick={rowPick(menu.row)}
             anchor={menu.anchor}
-            onClose={() => setMenu(null)}
-            onAdded={() => {
-              setAddedKey(menu.row.key);
-              setMenu(null);
-              window.setTimeout(() => setAddedKey(null), 1600);
-            }}
+            onClose={closeMenu}
+            onChoose={choose}
           />
         )}
         <footer className="border-t border-stroke px-4 py-2 text-12 text-ink-3">

@@ -19,9 +19,15 @@ export { pickFromRow, pickKey, type OnlinePick } from "@/lib/onlinePick";
 
 /** Resolved candidates primed on hover (key → candidate). */
 const specCache = new Map<string, Candidate>();
-const inflight = new Set<string>();
+/** P9.9 single-flight: ONE shared promise per key across prime/play/add —
+    a pick that lands while a prime is running awaits the same flight
+    instead of spawning a duplicate yt-dlp chain (the old `Set` only
+    deduped prime-vs-prime; add-vs-prime raced into two chains). Successes
+    settle into specCache; rejections reach every waiter of that flight and
+    the entry clears, so the next attempt starts fresh. */
+const inflight = new Map<string, Promise<Candidate | null>>();
 
-/** Resolve through the chain, reusing a primed result when available. */
+/** Resolve through the chain, reusing a primed or in-flight result. */
 async function resolveOnlinePick(pick: OnlinePick): Promise<Candidate | null> {
   const key = pickKey(pick);
   const primed = specCache.get(key);
@@ -29,24 +35,35 @@ async function resolveOnlinePick(pick: OnlinePick): Promise<Candidate | null> {
     console.log(`[onlinePlay] prime hit ${key}`);
     return primed;
   }
-  const candidate = await resolveQuery({
-    artist: pick.artist ?? "",
-    title: pick.title,
-    durationMs: pick.durationMs ?? null,
+  const flying = inflight.get(key);
+  if (flying) {
+    console.log(`[onlinePlay] awaiting in-flight ${key}`);
+    return flying;
+  }
+  const flight = (async (): Promise<Candidate | null> => {
+    const candidate = await resolveQuery({
+      artist: pick.artist ?? "",
+      title: pick.title,
+      durationMs: pick.durationMs ?? null,
+    });
+    if (candidate) specCache.set(key, candidate);
+    return candidate;
+  })().finally(() => {
+    inflight.delete(key);
   });
-  if (candidate) specCache.set(key, candidate);
-  return candidate;
+  inflight.set(key, flight);
+  return flight;
 }
 
 /** P9.7 hover pre-resolve: fire-and-forget; a later pick reuses the spec.
-    Single in-flight per key; failures are not cached (play shows the toast). */
+    Failures are not cached (play/add show the toast). P9.9: starts a
+    single-flight resolve — prime/play/add for the same key share it. */
 export function primeOnlinePick(pick: OnlinePick): void {
   const key = pickKey(pick);
   if (specCache.has(key) || inflight.has(key)) return;
-  inflight.add(key);
-  resolveOnlinePick(pick)
-    .catch((err) => console.warn("[onlinePlay] prime failed:", err))
-    .finally(() => inflight.delete(key));
+  resolveOnlinePick(pick).catch((err) =>
+    console.warn("[onlinePlay] prime failed:", err),
+  );
 }
 
 /** Persist the resolved candidate as a DB row and merge it into the

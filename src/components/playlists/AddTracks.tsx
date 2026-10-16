@@ -1,9 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { searchLocal } from "@/lib/api";
 import { addPlaylistTrack } from "@/lib/playlistApi";
 import { formatDuration } from "@/lib/format";
 import { fetchOnlineTracks, type OnlineTrackHit } from "@/components/search/onlineTracks";
-import { addPickToPlaylist } from "@/lib/onlinePlay";
+import { useAutoPrime } from "@/components/search/useAutoPrime";
+import {
+  addPickToPlaylist,
+  primeOnlinePick,
+  type OnlinePick,
+} from "@/lib/onlinePlay";
 import { useUiStore } from "@/store/uiStore";
 import type { Track } from "@/lib/types";
 
@@ -16,16 +21,29 @@ interface Props {
 }
 
 const ONLINE_DEBOUNCE_MS = 275;
+/** P9.9: same dwell as the Ctrl+K overlay's hover prime. */
+const PRIME_DWELL_MS = 200;
 
-/** P8.2 library search + P9.8 #2: online (iTunes→MB) layer — picking an
-    online hit resolves it, persists a 'stream' row and links it into this
-    playlist (addPickToPlaylist), same path as the Ctrl+K "+" button. */
+/** P8.2 library search + P9.8 #2 online layer + P9.9 priming (top-2 on
+    arrival + 200 ms hover dwell) and optimistic add ("Adding…" badge
+    while resolve→persist→link finish in the background; toast + onAdded
+    report the outcome). */
 export function AddTracks({ playlistId, memberIds, onAdded }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Track[]>([]);
   const [online, setOnline] = useState<OnlineTrackHit[]>([]);
   const [onlinePending, setOnlinePending] = useState(false);
+  const [addingKey, setAddingKey] = useState<string | null>(null);
+  const hoverTimer = useRef<number | undefined>(undefined);
   const pushToast = useUiStore((s) => s.pushToast);
+
+  const hitPick = (h: OnlineTrackHit): OnlinePick => ({
+    mbid: h.mbid,
+    itunesId: h.itunesId,
+    title: h.title,
+    artist: h.artist,
+    durationMs: h.durationMs,
+  });
 
   // Local FTS layer (instant).
   useEffect(() => {
@@ -73,6 +91,16 @@ export function AddTracks({ playlistId, memberIds, onAdded }: Props) {
     };
   }, [query]);
 
+  // P9.9: prime top results on arrival (useAutoPrime — same contract as
+  // the overlay) + the hovered row after a 200 ms dwell.
+  useAutoPrime(true, query, online);
+  useEffect(() => () => window.clearTimeout(hoverTimer.current), []);
+  const primeHovered = (hit: OnlineTrackHit): void => {
+    window.clearTimeout(hoverTimer.current);
+    hoverTimer.current = window.setTimeout(() => primeOnlinePick(hitPick(hit)), PRIME_DWELL_MS);
+  };
+  const cancelHover = (): void => window.clearTimeout(hoverTimer.current);
+
   async function add(track: Track) {
     try {
       const ok = await addPlaylistTrack(playlistId, track.id);
@@ -86,18 +114,18 @@ export function AddTracks({ playlistId, memberIds, onAdded }: Props) {
     }
   }
 
-  async function addOnline(hit: OnlineTrackHit) {
-    const ok = await addPickToPlaylist(
-      {
-        mbid: hit.mbid,
-        itunesId: hit.itunesId,
-        title: hit.title,
-        artist: hit.artist,
-        durationMs: hit.durationMs,
-      },
-      playlistId,
-    );
-    if (ok) onAdded();
+  /** P9.9 optimistic: badge "Adding…" synchronously with the click, then
+      resolve→persist→link off the UI thread of the interaction. */
+  function addOnline(hit: OnlineTrackHit) {
+    if (addingKey === hit.mbid) return;
+    const key = hit.mbid;
+    setAddingKey(key);
+    void addPickToPlaylist(hitPick(hit), playlistId)
+      .then((ok) => {
+        if (ok) onAdded();
+      })
+      .catch((err) => console.error("[add-tracks] add failed:", err))
+      .finally(() => setAddingKey((k) => (k === key ? null : k)));
   }
 
   const fresh = results.filter((t) => !memberIds.has(t.id));
@@ -143,17 +171,23 @@ export function AddTracks({ playlistId, memberIds, onAdded }: Props) {
           </li>
         )}
         {online.map((hit) => (
-          <li key={hit.mbid}>
+          <li
+            key={hit.mbid}
+            onMouseEnter={() => primeHovered(hit)}
+            onMouseLeave={cancelHover}
+          >
             <button
               type="button"
-              onClick={() => void addOnline(hit)}
+              onClick={() => addOnline(hit)}
               className="flex w-full items-center justify-between rounded-card px-3 py-2 text-left transition hover:bg-glass"
             >
               <span className="min-w-0 truncate text-14 text-ink-1">
                 {hit.artist} — {hit.title}
               </span>
               <span className="ml-3 shrink-0 text-12 tabular text-ink-3">
-                {formatDuration(hit.durationMs)} · add
+                {addingKey === hit.mbid
+                  ? "Adding…"
+                  : `${formatDuration(hit.durationMs)} · add`}
               </span>
             </button>
           </li>

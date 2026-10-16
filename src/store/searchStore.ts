@@ -53,16 +53,10 @@ const initial = {
 export const useSearchStore = create<SearchState>((set) => ({
   ...initial,
 
-  setOpen: (open) => {
-    if (open) {
-      set({ open: true });
-      return;
-    }
-    set(initial);
-    // Closing while parked on the search route returns to the previous page
-    // (the overlay is global; the route exists so the sidebar link works).
-    if (window.location.hash === "#/search") window.location.hash = "#/";
-  },
+  /** P9.9: closing no longer touches location.hash — the /search page
+      subscribes and navigates away on close (its old cleanup fought
+      StrictMode and bounced the route; see routes/Search.tsx). */
+  setOpen: (open) => set(open ? { open: true } : initial),
   // P9.8 (#3): mark online pending synchronously with the keystroke so the
   // first paint after typing can never flash "No matches" before the
   // debounce/effect runs (useEffect paints first, effects after).
