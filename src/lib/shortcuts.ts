@@ -1,9 +1,10 @@
 /** Global in-app keyboard shortcuts (P3.4 / architecture §2.3).
     Space toggle · ←/→ seek ±5 s · ↑/↓ volume ±5 % · M mute · Ctrl+K search.
-    Q (queue) and L (like) are reserved for later UIs. */
+    L toggles immersive lyrics (DESIGN §7); Q (queue) is reserved. */
 
 import { usePlayerStore } from "@/store/playerStore";
 import { useSearchStore } from "@/store/searchStore";
+import { useUiStore } from "@/store/uiStore";
 
 const SEEK_STEP_SEC = 5;
 const VOLUME_STEP = 0.05;
@@ -59,6 +60,12 @@ export function installShortcuts(): () => void {
       case "M":
         store.setMuted(!store.muted);
         break;
+      case "l":
+      case "L": {
+        const ui = useUiStore.getState();
+        ui.setLyricsOpen(!ui.lyricsOpen);
+        break;
+      }
     }
   };
 

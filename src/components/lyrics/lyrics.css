@@ -1,0 +1,127 @@
+/* P7.2 synced lyrics (DESIGN §7): active line scale 1.06, inactive blur
+   up to 3 px by distance (set inline), click-to-seek, 400 ms JS scroll.
+   Immersive = full-screen large type, chrome hidden (z between NP and
+   titlebar). No backdrop-filter here — the blur budget (4) is full. */
+
+.ly {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ly-line {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: var(--space-1) var(--space-2);
+  color: var(--text-3);
+  font-size: var(--text-16);
+  line-height: 1.45;
+  cursor: pointer;
+  transform-origin: left center;
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    color var(--dur-base) ease,
+    filter var(--dur-base) ease;
+}
+
+.ly-line:hover {
+  color: var(--text-2);
+}
+
+.ly-line--active {
+  color: var(--text-1);
+  font-weight: 600;
+  transform: scale(1.06);
+}
+
+.ly__note {
+  margin: 0;
+  font-size: var(--text-13);
+  color: var(--text-3);
+}
+
+.ly__plain {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  color: var(--text-2);
+  font-size: var(--text-14);
+}
+
+.ly__plain p {
+  margin: 0 0 var(--space-2);
+  white-space: pre-wrap;
+}
+
+/* ---------- Immersive overlay (full-screen large type) ---------- */
+
+.ly-imm {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6) var(--space-8) var(--space-8);
+  gap: var(--space-4);
+  background: color-mix(in oklab, var(--bg-0) 88%, transparent);
+}
+
+.ly-imm__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.ly-imm__title {
+  margin: 0;
+  font-size: var(--text-14);
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ly-imm__close {
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--text-28);
+  line-height: 1;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.ly-imm__close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-1);
+}
+
+.ly-imm__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ly--imm {
+  padding-right: var(--space-6);
+}
+
+.ly--imm .ly-line {
+  font-family: var(--font-display);
+  font-size: var(--text-28);
+  letter-spacing: var(--tracking-display);
+  line-height: 1.35;
+  padding: var(--space-2) var(--space-3);
+}
+
+.ly--imm.ly__plain {
+  font-size: var(--text-20);
+}

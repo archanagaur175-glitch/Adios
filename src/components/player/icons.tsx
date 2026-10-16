@@ -62,9 +62,21 @@ export function IconVolume({ className }: Props) {
 export function IconMute({ className }: Props) {
   return (
     <svg {...base} className={className}>
-      <path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z" fill="currentColor" stroke="none" />
-      <line x1="15.5" y1="9.5" x2="20.5" y2="14.5" />
-      <line x1="20.5" y1="9.5" x2="15.5" y2="14.5" />
+      <path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z" />
+      <line x1="15.5" y1="9" x2="20.5" y2="14.5" />
+      <line x1="20.5" y1="9" x2="15.5" y2="14.5" />
+    </svg>
+  );
+}
+
+export function IconLyrics({ className }: Props) {
+  return (
+    <svg {...base} className={className}>
+      <line x1="4" y1="6" x2="14" y2="6" />
+      <line x1="4" y1="11" x2="20" y2="11" />
+      <line x1="4" y1="16" x2="9" y2="16" />
+      <circle cx="15.5" cy="17" r="2.4" />
+      <path d="M17.9 17V8.8l3 .9" />
     </svg>
   );
 }

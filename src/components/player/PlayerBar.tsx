@@ -6,7 +6,7 @@ import { useLibraryStore } from "@/store/libraryStore";
 import { usePlayerStore } from "@/store/playerStore";
 import { useUiStore } from "@/store/uiStore";
 import { CrossFadeArt } from "./CrossFadeArt";
-import { IconMute, IconNext, IconPause, IconPlay, IconPrev, IconVolume } from "./icons";
+import { IconLyrics, IconMute, IconNext, IconPause, IconPlay, IconPrev, IconVolume } from "./icons";
 import "./playerbar.css";
 
 /** Fixed bottom player bar: transport, seek, volume (P3.3).
@@ -20,6 +20,7 @@ export function PlayerBar() {
   const muted = usePlayerStore((s) => s.muted);
   const hasTrack = usePlayerStore((s) => s.queue.length > 0 && s.currentTrackId != null);
   const npOpen = useUiStore((s) => s.nowPlayingOpen);
+  const lyricsOpen = useUiStore((s) => s.lyricsOpen);
   const track = useLibraryStore((s) =>
     s.tracks.find((t) => t.id === currentTrackId) ?? null,
   );
@@ -109,16 +110,25 @@ export function PlayerBar() {
         >
           {muted || volume === 0 ? <IconMute /> : <IconVolume />}
         </button>
-        <input
-          type="range"
-          aria-label="Volume"
-          min={0}
-          max={1}
-          step={0.01}
-          value={muted ? 0 : volume}
-          onChange={(e) => usePlayerStore.getState().setVolume(Number(e.target.value))}
-        />
-      </div>
+          <input
+            type="range"
+            aria-label="Volume"
+            min={0}
+            max={1}
+            step={0.01}
+            value={muted ? 0 : volume}
+            onChange={(e) => usePlayerStore.getState().setVolume(Number(e.target.value))}
+          />
+          <button
+            type="button"
+            aria-label="Lyrics"
+            aria-pressed={lyricsOpen}
+            className="player-bar__btn"
+            onClick={() => useUiStore.getState().setLyricsOpen(!lyricsOpen)}
+          >
+            <IconLyrics />
+          </button>
+        </div>
     </footer>
   );
 }

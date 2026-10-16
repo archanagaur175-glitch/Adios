@@ -10,10 +10,11 @@ import {
   IconPrev,
 } from "@/components/player/icons";
 import { HeroArt } from "./HeroArt";
+import { LyricsPanel } from "@/components/lyrics/LyricsPanel";
 import "./nowplaying.css";
 
 /** P6.4 expanded Now Playing (DESIGN §5/L3): hero art + meta + transport,
-    lyrics placeholder (P7 fills the column) and the queue list. Opens via
+    synced lyrics column (P7.2) and the queue list. Opens via
     the player-bar cover (View Transition morph); Escape / × closes. */
 export function NowPlaying() {
   const open = useUiStore((s) => s.nowPlayingOpen);
@@ -27,7 +28,10 @@ export function NowPlaying() {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") runWithViewTransition(() => useUiStore.getState().setNowPlayingOpen(false));
+      if (e.key !== "Escape") return;
+      // The immersive lyrics layer sits on top — ESC closes only that layer.
+      if (useUiStore.getState().lyricsOpen) return;
+      runWithViewTransition(() => useUiStore.getState().setNowPlayingOpen(false));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -86,7 +90,7 @@ export function NowPlaying() {
         <div className="np__side np__chrome">
           <section className="np__panel">
             <h3 className="np__panel-title">Lyrics</h3>
-            <p className="np__placeholder">Synced lyrics arrive with P7.</p>
+            <LyricsPanel />
           </section>
           <section className="np__panel np__panel--queue">
             <h3 className="np__panel-title">Queue</h3>

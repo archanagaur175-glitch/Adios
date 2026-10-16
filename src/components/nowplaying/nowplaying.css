@@ -126,12 +126,6 @@
   color: var(--text-3);
 }
 
-.np__placeholder {
-  margin: 0;
-  font-size: var(--text-13);
-  color: var(--text-3);
-}
-
 .np__queue {
   list-style: none;
   margin: 0;

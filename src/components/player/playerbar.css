@@ -150,6 +150,10 @@
   cursor: default;
 }
 
+.player-bar__btn[aria-pressed="true"] {
+  color: var(--accent);
+}
+
 .player-bar__btn--primary {
   width: 40px;
   height: 40px;

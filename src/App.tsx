@@ -4,6 +4,7 @@ import { initMediaIntegration } from "@/audio/mediaSession";
 import { initPlayerEngine } from "@/audio/engine";
 import { runSmokeIfEnabled } from "@/audio/smoke";
 import { ToastHost } from "@/components/common/ToastHost";
+import { ImmersiveLyrics } from "@/components/lyrics/ImmersiveLyrics";
 import { inTauri, listTracks } from "@/lib/api";
 import { useLibraryStore } from "@/store/libraryStore";
 import { initBandsBridge } from "@/visuals/audioBandsBridge";
@@ -50,6 +51,7 @@ function App() {
   return (
     <HashRouter>
       <ToastHost />
+      <ImmersiveLyrics />
       <Routes>
         <Route element={<AppShell />}>
           <Route index element={<HomePage />} />
