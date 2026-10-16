@@ -1,6 +1,7 @@
-/** Grouped result rendering for the Ctrl+K overlay (P5.3):
-    local tracks first ("local-first"), then MusicBrainz tracks/albums/artists.
-    Flattened row order matches the keyboard navigation index. */
+/** Grouped result rendering for the Ctrl+K overlay (P5.3/P9.5/P9.7):
+    local tracks first ("local-first"), then online tracks (iTunes primary,
+    MB fallback), albums, artists. Flattened row order matches the keyboard
+    navigation index. Online track rows carry a "+ Add" button (P9.7). */
 
 import { formatDuration } from "@/lib/format";
 import type { OnlineResult } from "@/store/searchStore";
@@ -13,8 +14,10 @@ export interface ResultRow {
   right?: string;
   /** Present for local rows — picking one starts playback. */
   trackId?: number;
-  /** P9.5: present for MusicBrainz track rows — picking one resolves+streams. */
+  /** P9.5/P9.7: online track rows — `mbid` is "itunes:<id>" or an MB id. */
   mbid?: string;
+  /** P9.7: iTunes id when the row came from the iTunes picker. */
+  itunesId?: number;
   durationMs?: number;
 }
 
@@ -28,6 +31,8 @@ export interface GroupInput {
   onlineTracks: OnlineResult[];
   onlineAlbums: OnlineResult[];
   onlineArtists: OnlineResult[];
+  /** "iTunes" when tracks came from iTunes; "MusicBrainz tracks" otherwise. */
+  trackLabel: string;
 }
 
 export function buildGroups(input: GroupInput): ResultGroup[] {
@@ -42,25 +47,27 @@ export function buildGroups(input: GroupInput): ResultGroup[] {
   }));
   if (local.length > 0) groups.push({ label: "In your library", rows: local });
 
-  const addMb = (
-    label: string,
-    items: OnlineResult[],
-    withDuration: boolean,
-    withMbid = false,
-  ) => {
+  const trackRows = input.onlineTracks.map((r, i) => ({
+    key: `tracks-${r.itunesId ?? r.mbid ?? i}`,
+    title: r.title,
+    sub: r.artist || undefined,
+    right: formatDuration(r.durationMs),
+    mbid: r.mbid,
+    itunesId: r.itunesId,
+    durationMs: r.durationMs,
+  }));
+  if (trackRows.length > 0) groups.push({ label: input.trackLabel, rows: trackRows });
+
+  const addMeta = (label: string, items: OnlineResult[]) => {
     const rows = items.map((r, i) => ({
       key: `${label}-${r.mbid || i}`,
       title: r.title,
       sub: r.artist || undefined,
-      right: withDuration ? formatDuration(r.durationMs) : undefined,
-      mbid: withMbid ? r.mbid : undefined,
-      durationMs: withDuration ? r.durationMs : undefined,
     }));
     if (rows.length > 0) groups.push({ label, rows });
   };
-  addMb("MusicBrainz tracks", input.onlineTracks, true, true);
-  addMb("MusicBrainz albums", input.onlineAlbums, false);
-  addMb("MusicBrainz artists", input.onlineArtists, false);
+  addMeta("MusicBrainz albums", input.onlineAlbums);
+  addMeta("MusicBrainz artists", input.onlineArtists);
 
   return groups;
 }
@@ -75,16 +82,22 @@ interface Props {
   activeIndex: number;
   /** P9.5: key of the row currently resolving through the stream chain. */
   pickingKey?: string | null;
+  /** P9.7: "… added" state for a row just saved to a playlist. */
+  addedKey?: string | null;
   onHover: (index: number) => void;
   onPick: (row: ResultRow) => void;
+  /** P9.7: "+ Add" on online track rows. */
+  onAdd?: (row: ResultRow) => void;
 }
 
 export function SearchResultsList({
   groups,
   activeIndex,
   pickingKey,
+  addedKey,
   onHover,
   onPick,
+  onAdd,
 }: Props) {
   let offset = 0;
   return (
@@ -100,12 +113,13 @@ export function SearchResultsList({
             <ul>
               {group.rows.map((row, i) => {
                 const index = start + i;
+                const isOnlineTrack = row.mbid != null && onAdd != null;
                 return (
                   <li
                     key={row.key}
                     onMouseMove={() => onHover(index)}
                     onClick={() => onPick(row)}
-                    className={`flex cursor-pointer items-center gap-3 rounded-card px-3 py-2 transition ${
+                    className={`flex cursor-pointer items-center gap-2 rounded-card px-3 py-2 transition ${
                       index === activeIndex ? "bg-glass" : ""
                     }`}
                   >
@@ -117,10 +131,25 @@ export function SearchResultsList({
                     </div>
                     {pickingKey === row.key ? (
                       <span className="text-12 text-accent">Resolving…</span>
+                    ) : addedKey === row.key ? (
+                      <span className="text-12 text-accent">Added ✓</span>
                     ) : (
                       row.right && (
                         <span className="text-12 tabular text-ink-3">{row.right}</span>
                       )
+                    )}
+                    {isOnlineTrack && (
+                      <button
+                        type="button"
+                        aria-label={`Add “${row.title}” to a playlist`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAdd?.(row);
+                        }}
+                        className="rounded-6 px-1.5 py-0.5 text-14 text-ink-3 transition hover:bg-glass hover:text-ink-1"
+                      >
+                        +
+                      </button>
                     )}
                   </li>
                 );

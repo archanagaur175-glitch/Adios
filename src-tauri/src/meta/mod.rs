@@ -10,6 +10,7 @@
 pub mod cover_art;
 pub mod cover_store;
 pub mod enrich;
+pub mod itunes;
 pub mod lrclib;
 pub mod lrclib_types;
 pub mod mb_client;
@@ -22,6 +23,8 @@ pub mod rate_limit;
 mod cover_art_tests;
 #[cfg(test)]
 mod enrich_match_tests;
+#[cfg(test)]
+mod itunes_tests;
 #[cfg(test)]
 mod enrich_tests;
 #[cfg(test)]

@@ -1,20 +1,37 @@
-/** Ctrl+K search overlay (P5.3): local FTS5 results arrive instantly,
-    MusicBrainz tracks/albums/artists append after the 275 ms debounce (D12).
-    Arrow keys walk the flattened grouped list; Enter plays local picks, and
-    (P9.5) MB track rows stream via the resolve_query chain. */
+/** Ctrl+K search overlay (P5.3/P9.5/P9.7): local FTS5 results arrive
+    instantly; online tracks (iTunes primary, MB fallback), albums and
+    artists append after the 275 ms debounce (D12). Arrow keys walk the
+    flattened list; Enter plays local picks; online track rows stream via
+    the resolve chain with a hover prime cache, and "+ Add" persists them
+    into a playlist. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { playOnlinePick } from "@/lib/onlinePlay";
+import { playOnlinePick, primeOnlinePick, type OnlinePick } from "@/lib/onlinePlay";
 import { usePlayerStore } from "@/store/playerStore";
 import { useUiStore } from "@/store/uiStore";
 import { useSearchStore } from "@/store/searchStore";
 import { useSearchLayers } from "./useSearchLayers";
+import { AddToPlaylistMenu } from "./AddToPlaylistMenu";
 import {
   buildGroups,
   flattenGroups,
   SearchResultsList,
   type ResultRow,
 } from "./SearchResults";
+
+/** Hover dwell before pre-resolving a row (P9.7): long enough to filter
+    accidental passes, short enough to feel instant on a deliberate pick. */
+const PRIME_DWELL_MS = 200;
+
+function rowPick(row: ResultRow): OnlinePick {
+  return {
+    mbid: row.mbid,
+    itunesId: row.itunesId,
+    title: row.title,
+    artist: row.sub,
+    durationMs: row.durationMs,
+  };
+}
 
 export function SearchOverlay() {
   const open = useSearchStore((s) => s.open);
@@ -28,12 +45,22 @@ export function SearchOverlay() {
   const inputRef = useRef<HTMLInputElement>(null);
   const pickingRef = useRef(false);
   const [pickingKey, setPickingKey] = useState<string | null>(null);
+  const [addedKey, setAddedKey] = useState<string | null>(null);
+  const [menuRow, setMenuRow] = useState<ResultRow | null>(null);
 
   useSearchLayers(query);
 
+  const trackLabel = useMemo(
+    () =>
+      onlineTracks.some((t) => t.itunesId != null)
+        ? "iTunes"
+        : "MusicBrainz tracks",
+    [onlineTracks],
+  );
   const groups = useMemo(
-    () => buildGroups({ localResults, onlineTracks, onlineAlbums, onlineArtists }),
-    [localResults, onlineTracks, onlineAlbums, onlineArtists],
+    () =>
+      buildGroups({ localResults, onlineTracks, onlineAlbums, onlineArtists, trackLabel }),
+    [localResults, onlineTracks, onlineAlbums, onlineArtists, trackLabel],
   );
   const rows = useMemo(() => flattenGroups(groups), [groups]);
 
@@ -41,19 +68,23 @@ export function SearchOverlay() {
     if (open) inputRef.current?.focus();
   }, [open]);
 
-  /** P9.5: MusicBrainz track row → resolve_query chain → transient stream
+  // P9.7 hover pre-resolve: dwell 200 ms on an online track row, then fire
+  // the chain in the background (results cached in onlinePlay's spec map).
+  const activeRow = rows[activeIndex];
+  useEffect(() => {
+    if (!open || !activeRow?.mbid) return;
+    const t = window.setTimeout(() => primeOnlinePick(rowPick(activeRow)), PRIME_DWELL_MS);
+    return () => window.clearTimeout(t);
+  }, [open, activeRow]);
+
+  /** Online track row → resolve chain (possibly primed) → persisted stream
       track → play (logic in lib/onlinePlay.ts; row shows "Resolving…"). */
   async function playOnline(row: ResultRow): Promise<void> {
     if (pickingRef.current || !row.mbid) return;
     pickingRef.current = true;
     setPickingKey(row.key);
     try {
-      const started = await playOnlinePick({
-        mbid: row.mbid,
-        title: row.title,
-        artist: row.sub,
-        durationMs: row.durationMs,
-      });
+      const started = await playOnlinePick(rowPick(row));
       if (started) useSearchStore.getState().setOpen(false);
     } finally {
       pickingRef.current = false;
@@ -111,7 +142,7 @@ export function SearchOverlay() {
       role="presentation"
     >
       <div
-        className="glass flex h-[min(62vh,580px)] w-[min(680px,92vw)] flex-col overflow-hidden rounded-card"
+        className="glass relative flex h-[min(62vh,580px)] w-[min(680px,92vw)] flex-col overflow-hidden rounded-card"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
         role="dialog"
@@ -121,14 +152,14 @@ export function SearchOverlay() {
           ref={inputRef}
           value={query}
           onChange={(e) => useSearchStore.getState().setQuery(e.target.value)}
-          placeholder="Search your library and MusicBrainz…"
+          placeholder="Search your library, iTunes and MusicBrainz…"
           spellCheck={false}
           autoComplete="off"
           className="border-b border-stroke bg-transparent px-4 py-3.5 text-15 text-ink-1 placeholder:text-ink-3"
         />
         <div className="flex-1 overflow-y-auto px-2 pb-2">
           {onlinePending && (
-            <p className="px-3 py-1.5 text-12 text-ink-3">Searching MusicBrainz…</p>
+            <p className="px-3 py-1.5 text-12 text-ink-3">Searching online…</p>
           )}
           {rows.length === 0 && !onlinePending && query.trim() && (
             <p className="px-3 py-1.5 text-13 text-ink-3">
@@ -139,12 +170,25 @@ export function SearchOverlay() {
             groups={groups}
             activeIndex={activeIndex}
             pickingKey={pickingKey}
+            addedKey={addedKey}
             onHover={(i) => useSearchStore.getState().setActiveIndex(i)}
             onPick={pick}
+            onAdd={(row) => setMenuRow(row)}
           />
         </div>
+        {menuRow && (
+          <AddToPlaylistMenu
+            pick={rowPick(menuRow)}
+            onClose={() => setMenuRow(null)}
+            onAdded={() => {
+              setAddedKey(menuRow.key);
+              setMenuRow(null);
+              window.setTimeout(() => setAddedKey(null), 1600);
+            }}
+          />
+        )}
         <footer className="border-t border-stroke px-4 py-2 text-12 text-ink-3">
-          ↑↓ navigate · ↵ play · esc close
+          ↑↓ navigate · ↵ play · + add to playlist · esc close
         </footer>
       </div>
     </div>

@@ -10,6 +10,8 @@ export interface OnlineResult {
   artist: string;
   album?: string;
   durationMs?: number;
+  /** P9.7: iTunes hits carry their own id (relevance order from Apple). */
+  itunesId?: number;
 }
 
 interface SearchState {

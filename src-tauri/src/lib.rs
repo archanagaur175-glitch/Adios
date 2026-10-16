@@ -78,6 +78,12 @@ pub fn run() {
             let mb_client = meta::mb_client::MbClient::with_default_transport(shared_db.clone());
             app.manage(mb_client);
 
+            // iTunes track picker (P9.7): keyless, relevance-ordered,
+            // cache-first, own 400 ms spacing queue (never MB's 1 rps).
+            app.manage(meta::itunes::ItunesClient::with_default_transport(
+                shared_db.clone(),
+            ));
+
             // Cover Art Archive (P5.2): no CAA rate limits per docs, so the
             // client does not share the MB 1-req/s queue.
             app.manage(meta::cover_art::CoverArtClient::default());
@@ -150,7 +156,9 @@ pub fn run() {
             commands::resolver::test_instance,
             commands::ytdlp::update_ytdlp,
             commands::search::search_metadata,
+            commands::search::search_itunes,
             commands::search::search_local,
+            commands::library::add_stream_track,
             commands::cover::fetch_cover,
             commands::enrich::enrich_tracks,
             commands::lyrics::get_lyrics,

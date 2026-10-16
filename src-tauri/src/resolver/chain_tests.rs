@@ -144,3 +144,17 @@ fn empty_chain_returns_not_found() {
         futures::executor::block_on(chain.resolve(&query("Anything", "Anyone", None))).unwrap_err();
     assert!(matches!(err, ResolveError::NotFound));
 }
+
+/// P9.7: when resolvers ran but all missed, the error carries each
+/// resolver's reason so the UI toast can explain the failure.
+#[test]
+fn chain_aggregates_miss_reasons() {
+    let db = Arc::new(Mutex::new(open_memory().unwrap()));
+    let chain = ResolverChain::new(vec![Arc::new(LocalFileResolver::new(db))]);
+    let err = futures::executor::block_on(chain.resolve(&query("Blinding Lights", "The Weeknd", None)))
+        .unwrap_err();
+    match err {
+        ResolveError::Internal(msg) => assert!(msg.contains("local"), "got: {msg}"),
+        other => panic!("expected aggregated Internal, got {other:?}"),
+    }
+}

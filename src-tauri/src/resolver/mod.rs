@@ -11,6 +11,7 @@ pub mod table;
 
 pub use table::{ResolutionTable, SharedTable};
 pub mod ytdlp;
+pub mod ytdlp_args;
 
 #[cfg(test)]
 mod tests;
@@ -118,7 +119,10 @@ impl ResolverChain {
     }
 
     pub async fn resolve(&self, query: &Query) -> Result<Candidate, ResolveError> {
-        let mut last_err = ResolveError::NotFound;
+        // P9.7: aggregate per-resolver misses so the UI toast can say WHY
+        // ("ytdlp: no usable YouTube video (…); piped: …") instead of a
+        // generic "no candidate".
+        let mut misses: Vec<String> = Vec::new();
         for resolver in &self.resolvers {
             match resolver.resolve(query).await {
                 Ok(candidate) => {
@@ -132,11 +136,16 @@ impl ResolverChain {
                 }
                 Err(err) => {
                     println!("[resolver] {} -> miss: {err}", resolver.name());
-                    last_err = err;
+                    misses.push(format!("{}: {err}", resolver.name()));
                 }
             }
         }
-        Err(last_err)
+        Err(if misses.is_empty() {
+            // No resolver even ran (empty chain) — keep the NotFound shape.
+            ResolveError::NotFound
+        } else {
+            ResolveError::Internal(misses.join("; "))
+        })
     }
 
     pub async fn health(&self) -> Vec<(&'static str, Health)> {

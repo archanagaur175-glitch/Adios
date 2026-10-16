@@ -24,12 +24,6 @@ interface LibraryState {
   setFilters: (filters: LibraryState["filters"]) => void;
   setScanProgress: (progress: ScanProgress | null) => void;
   setHydrated: (hydrated: boolean) => void;
-  /** P9.5: transient online track (MusicBrainz pick → resolve_query). Lives
-      in-memory only (negative id, never persisted; session restore drops it).
-      Dedupe by mbRecordingId — re-picking refreshes the stream URL. */
-  upsertStreamTrack: (
-    input: Omit<Track, "id" | "playCount"> & { mbRecordingId: string },
-  ) => number;
 }
 
 export const useLibraryStore = create<LibraryState>((set) => ({
@@ -49,23 +43,4 @@ export const useLibraryStore = create<LibraryState>((set) => ({
   setFilters: (filters) => set({ filters }),
   setScanProgress: (scanProgress) => set({ scanProgress }),
   setHydrated: (hydrated) => set({ hydrated }),
-  upsertStreamTrack: (input) => {
-    let id = 0;
-    set((state) => {
-      const existing = state.tracks.find(
-        (t) => t.mbRecordingId === input.mbRecordingId,
-      );
-      if (existing) {
-        id = existing.id;
-        return {
-          tracks: state.tracks.map((t) =>
-            t.id === existing.id ? { ...t, ...input, id: existing.id } : t,
-          ),
-        };
-      }
-      id = Math.min(0, ...state.tracks.map((t) => t.id)) - 1;
-      return { tracks: [...state.tracks, { ...input, id, playCount: 0 }] };
-    });
-    return id;
-  },
 }));

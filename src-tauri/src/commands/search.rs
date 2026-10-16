@@ -1,11 +1,14 @@
-//! Search commands (P5.1/P5.3): `search_local` is the instant FTS5 layer of
-//! the Ctrl+K overlay; `search_metadata` is the MusicBrainz layer that
-//! appends after the 275 ms debounce (local-first, both cache-first).
+//! Search commands (P5.1/P5.3 + P9.7): `search_local` is the instant FTS5
+//! layer of the Ctrl+K overlay; `search_itunes` is the keyless relevance-
+//! ordered track picker (single request; planned as Deezer, whose anonymous
+//! API now returns empty data — see meta/itunes.rs); `search_metadata` is
+//! the MusicBrainz layer for albums/artists (and track fallback).
 
 use serde_json::to_value;
 use tauri::State;
 
 use crate::db::DbState;
+use crate::meta::itunes::{ItunesClient, ReqwestItTransport};
 use crate::meta::mb_client::{MbClient, ReqwestTransport};
 use crate::meta::mb_types::{MbArtist, MbRecording, MbRelease, SearchKind};
 
@@ -17,6 +20,19 @@ pub fn search_local(db: State<DbState>, query: String) -> Result<Vec<crate::db::
         .lock()
         .map_err(|e| format!("db lock poisoned: {e}"))?;
     crate::db::fts::search(&conn, &query, 50).map_err(|e| format!("search failed: {e}"))
+}
+
+/// iTunes track search (P9.7): relevance-ordered picker rows, cache-first.
+#[tauri::command]
+pub async fn search_itunes(
+    client: State<'_, ItunesClient<ReqwestItTransport>>,
+    query: String,
+) -> Result<Vec<crate::meta::itunes::ItunesTrackOut>, String> {
+    let q = query.trim();
+    if q.is_empty() {
+        return Err("empty query".to_owned());
+    }
+    client.search(q).await
 }
 
 /// Search MusicBrainz through the cache-first client.
