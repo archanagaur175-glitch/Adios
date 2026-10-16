@@ -4,7 +4,7 @@ import type { EvictStats } from "@/lib/types";
 import { useSettingsStore } from "@/store/settingsStore";
 
 const inputCls =
-  "w-28 rounded-ctrl border border-stroke bg-glass px-3 py-1.5 text-14 tabular text-ink-1 outline-none focus:border-accent";
+  "w-28 rounded-ctrl border border-stroke bg-glass px-3 py-1.5 text-14 tabular text-ink-1 focus:border-accent";
 const ctrlBtn =
   "rounded-ctrl bg-accent px-3 py-1.5 text-13 font-medium text-white transition hover:opacity-90 disabled:opacity-50";
 

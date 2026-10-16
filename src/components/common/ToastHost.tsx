@@ -24,8 +24,8 @@ export function ToastHost() {
           role="status"
           className={
             toast.tone === "danger"
-              ? "rounded-card bg-danger px-3 py-2 text-13 text-white shadow-lg"
-              : "rounded-card bg-accent px-3 py-2 text-13 text-white shadow-lg"
+              ? "rounded-card bg-danger px-3 py-2 text-14 text-bg-0 shadow-lg"
+              : "rounded-card bg-accent px-3 py-2 text-14 text-bg-0 shadow-lg"
           }
         >
           {toast.message}

@@ -61,7 +61,7 @@ export function AddTracks({ playlistId, memberIds, onAdded }: Props) {
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search library to add tracks…"
         aria-label="Search library to add tracks"
-        className="rounded-ctrl border border-stroke bg-transparent px-3 py-2 text-14 text-ink-1 outline-none placeholder:text-ink-3 focus:border-accent"
+        className="rounded-ctrl border border-stroke bg-transparent px-3 py-2 text-14 text-ink-1 placeholder:text-ink-3 focus:border-accent"
       />
       {query.trim() && results.length > 0 && fresh.length === 0 && (
         <p className="text-12 text-ink-3">All matches are already in this playlist.</p>

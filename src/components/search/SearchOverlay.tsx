@@ -173,7 +173,7 @@ export function SearchOverlay() {
           placeholder="Search your library and MusicBrainz…"
           spellCheck={false}
           autoComplete="off"
-          className="border-b border-stroke bg-transparent px-4 py-3.5 text-15 text-ink-1 outline-none placeholder:text-ink-3"
+          className="border-b border-stroke bg-transparent px-4 py-3.5 text-15 text-ink-1 placeholder:text-ink-3"
         />
         <div className="flex-1 overflow-y-auto px-2 pb-2">
           {onlinePending && (

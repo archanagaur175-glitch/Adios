@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { KeyboardEvent } from "react";
 import { formatDuration } from "@/lib/format";
 import type { Track } from "@/lib/types";
 
@@ -27,6 +28,8 @@ export function DragTrackList({ tracks, onReorder, onRemove, onPlay }: Props) {
   const [drag, setDrag] = useState<
     { from: number; startY: number; snapshot: Track[] } | null
   >(null);
+  /** Keyboard-grabbed row index (P9.1): Space toggles, arrows move, Esc cancels. */
+  const [grabbed, setGrabbed] = useState<number | null>(null);
   const latestOrder = useRef<Track[]>(tracks);
 
   // Props win whenever we are not mid-drag (reload/removal from outside).
@@ -60,27 +63,64 @@ export function DragTrackList({ tracks, onReorder, onRemove, onPlay }: Props) {
     };
   }, [drag, onReorder]);
 
+  const handleKeyDown = (e: KeyboardEvent, index: number): void => {
+    const key = e.key;
+    if (key === " " || key === "Enter") {
+      e.preventDefault();
+      if (grabbed === index) {
+        setGrabbed(null);
+        onReorder(order.map((t) => t.id));
+      } else {
+        setGrabbed(index);
+      }
+      return;
+    }
+    if (grabbed !== index) return;
+    if (key === "Escape") {
+      e.preventDefault();
+      setOrder(tracks);
+      setGrabbed(null);
+    } else if (key === "ArrowUp" || key === "ArrowDown") {
+      e.preventDefault();
+      const to = Math.min(
+        order.length - 1,
+        Math.max(0, index + (key === "ArrowUp" ? -1 : 1)),
+      );
+      if (to === index) return;
+      setOrder(move(order, index, to));
+      setGrabbed(to); // focus follows the moved row's DOM node
+    }
+  };
+
   return (
     <ul className="flex flex-col gap-1" data-testid="playlist-tracks">
       {order.map((track, index) => (
         <li
           key={track.id}
-          className={`grid h-12 cursor-grab grid-cols-[auto_1fr_auto_auto] items-center gap-3 rounded-card px-3 transition hover:bg-glass ${
-            drag?.snapshot[drag.from]?.id === track.id ? "bg-glass opacity-60" : ""
+          className={`grid h-12 grid-cols-[auto_1fr_auto_auto] items-center gap-3 rounded-card px-3 transition hover:bg-glass ${
+            drag?.snapshot[drag.from]?.id === track.id || grabbed === index
+              ? "cursor-grab bg-glass opacity-60"
+              : "cursor-grab"
           }`}
           data-track-id={track.id}
         >
-          <span
-            aria-label="Reorder"
-            title="Drag to reorder"
+          <button
+            type="button"
+            aria-label={
+              grabbed === index
+                ? `Moving ${track.title} — arrow keys to move, Space to drop, Escape to cancel`
+                : `Reorder ${track.title} — Space to pick up, arrow keys to move`
+            }
+            title="Drag or Space to reorder"
             onPointerDown={(e) => {
               e.preventDefault();
               setDrag({ from: index, startY: e.clientY, snapshot: order });
             }}
+            onKeyDown={(e) => handleKeyDown(e, index)}
             className="cursor-grab select-none text-ink-3 active:cursor-grabbing"
           >
             ⠿
-          </span>
+          </button>
           <button
             type="button"
             onClick={() => onPlay(track.id)}

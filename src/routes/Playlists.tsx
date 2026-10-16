@@ -98,7 +98,7 @@ export default function PlaylistsPage() {
           }}
           placeholder="Playlist name"
           aria-label="Playlist name"
-          className="w-72 rounded-ctrl border border-stroke bg-transparent px-3 py-2 text-14 text-ink-1 outline-none placeholder:text-ink-3 focus:border-accent"
+          className="w-72 rounded-ctrl border border-stroke bg-transparent px-3 py-2 text-14 text-ink-1 placeholder:text-ink-3 focus:border-accent"
         />
       </div>
 

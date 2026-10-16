@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useSettingsStore } from "@/store/settingsStore";
 
 const inputCls =
-  "rounded-ctrl border border-stroke bg-glass px-3 py-1.5 text-14 text-ink-1 outline-none focus:border-accent";
+  "rounded-ctrl border border-stroke bg-glass px-3 py-1.5 text-14 text-ink-1 focus:border-accent";
 const btnCls =
   "rounded-ctrl bg-accent px-3 py-1.5 text-13 font-medium text-white transition hover:opacity-90";
 

@@ -11,7 +11,7 @@ import { useSettingsStore } from "@/store/settingsStore";
 const ctrlBtn =
   "rounded-ctrl px-3 py-1.5 text-13 font-medium transition disabled:opacity-50";
 const inputCls =
-  "rounded-ctrl border border-stroke bg-glass px-3 py-1.5 text-14 text-ink-1 outline-none focus:border-accent";
+  "rounded-ctrl border border-stroke bg-glass px-3 py-1.5 text-14 text-ink-1 focus:border-accent";
 
 /** Resolver settings (P4.4): health sweep + Piped/Invidious instance editor
     with per-instance Test. Instances ship EMPTY (D4) — user-managed only. */

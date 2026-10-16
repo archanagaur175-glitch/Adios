@@ -3,7 +3,7 @@ import { useUiStore } from "@/store/uiStore";
 import type { QualityTier } from "@/lib/types";
 
 const selectCls =
-  "rounded-ctrl border border-stroke bg-glass px-3 py-1.5 text-14 text-ink-1 outline-none focus:border-accent";
+  "rounded-ctrl border border-stroke bg-glass px-3 py-1.5 text-14 text-ink-1 focus:border-accent";
 
 const TIERS: { value: QualityTier; label: string }[] = [
   { value: "low", label: "Low — 48 bars, 30 fps" },

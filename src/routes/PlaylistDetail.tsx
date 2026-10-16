@@ -117,7 +117,7 @@ export default function PlaylistDetailPage() {
               if (e.key === "Enter") void rename();
             }}
             aria-label="Playlist name"
-            className="w-72 rounded-ctrl border border-stroke bg-transparent px-3 py-2 text-20 font-display text-ink-1 outline-none focus:border-accent"
+            className="w-72 rounded-ctrl border border-stroke bg-transparent px-3 py-2 text-20 font-display text-ink-1 focus:border-accent"
           />
         </div>
         <div className="flex gap-2">

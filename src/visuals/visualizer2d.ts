@@ -166,11 +166,10 @@ export function createVisualizer(canvas: HTMLCanvasElement): VizController {
   }
 
   return {
-    setConfig(next) {
-      cfg = next;
-    },
+    setConfig(next) { cfg = next; },
     start() {
       if (running) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
       resize();
       running = true;
       lastDraw = 0;

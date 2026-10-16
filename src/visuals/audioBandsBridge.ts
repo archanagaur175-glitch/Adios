@@ -8,6 +8,7 @@ import { emit } from "@tauri-apps/api/event";
 import { readBands } from "@/audio/bands";
 import { getAnalyser } from "@/audio/graph";
 import { inTauri } from "@/lib/api";
+import { prefersReducedMotion } from "@/lib/viewTransition";
 import { usePlayerStore } from "@/store/playerStore";
 
 let rafId = 0;
@@ -25,7 +26,12 @@ function setVar(name: string, value: string): void {
 }
 
 function shouldRun(): boolean {
-  return usePlayerStore.getState().isPlaying && document.visibilityState === "visible";
+  // P9.1: reduced motion rests the band vars at 0 (no audio-reactive pulse).
+  return (
+    usePlayerStore.getState().isPlaying &&
+    document.visibilityState === "visible" &&
+    !prefersReducedMotion()
+  );
 }
 
 function frame(): void {

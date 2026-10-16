@@ -76,6 +76,19 @@ h3 {
   outline-offset: 2px;
 }
 
+/* P9.1 reduced motion: token durations are already 0ms (tokens.css), but
+   Tailwind transition/animation utilities carry fixed durations — freeze
+   them (and stop infinite iterations) when the OS asks for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* Glass surface helper (Invariant 6: ≤4 visible, blur ≤24px) */
 .glass {
   background: var(--glass);

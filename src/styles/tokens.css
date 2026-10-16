@@ -12,7 +12,9 @@
   --stroke-top: rgba(255, 255, 255, 0.16);
   --text-1: #f4f6fb;
   --text-2: #a5acbd;
-  --text-3: #6b7287;
+  /* P9.1 contrast: #6b7287 measured 3.6–4.2:1 vs bg/glass (fails 4.5:1);
+     #8089a0 measures 5.0:1 vs glass, 5.1:1 vs bg-1, 5.4:1 vs bg-0. */
+  --text-3: #8089a0;
   --danger: #ff5c7a;
   --accent: #7c5cff; /* dynamic from album art; fallback */
   --accent-2: #2de2e6; /* dynamic secondary; fallback */
