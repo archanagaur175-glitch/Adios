@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { identityId, pickKey } from "./onlinePick";
+import { identityId, pickFromRow, pickKey } from "./onlinePick";
 
-// P9.7: cache-key identity for the hover prime map (pure module — no
+// P9.7/P9.8: cache-key identity for the prime maps (pure module — no
 // tauri/zustand/window imports).
 
 describe("pickKey", () => {
@@ -39,5 +39,35 @@ describe("identityId", () => {
 
   it("is empty without any id", () => {
     expect(identityId({ title: "T" })).toBe("");
+  });
+});
+
+describe("pickFromRow", () => {
+  it("maps an overlay result row to an OnlinePick", () => {
+    expect(
+      pickFromRow({
+        mbid: "itunes:9",
+        itunesId: 9,
+        title: "Song",
+        sub: "Artist",
+        durationMs: 180000,
+      }),
+    ).toEqual({
+      mbid: "itunes:9",
+      itunesId: 9,
+      title: "Song",
+      artist: "Artist",
+      durationMs: 180000,
+    });
+  });
+
+  it("keeps rows without ids/optional fields", () => {
+    expect(pickFromRow({ title: "Song" })).toEqual({
+      mbid: undefined,
+      itunesId: undefined,
+      title: "Song",
+      artist: undefined,
+      durationMs: undefined,
+    });
   });
 });

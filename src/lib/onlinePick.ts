@@ -22,3 +22,21 @@ export function pickKey(pick: OnlinePick): string {
 export function identityId(pick: OnlinePick): string {
   return pick.itunesId != null ? `itunes:${pick.itunesId}` : (pick.mbid ?? "");
 }
+
+/** Overlay result row → pick (structural params — no component imports;
+    SearchOverlay's ResultRow matches structurally). */
+export function pickFromRow(row: {
+  mbid?: string;
+  itunesId?: number;
+  title: string;
+  sub?: string;
+  durationMs?: number;
+}): OnlinePick {
+  return {
+    mbid: row.mbid,
+    itunesId: row.itunesId,
+    title: row.title,
+    artist: row.sub,
+    durationMs: row.durationMs,
+  };
+}

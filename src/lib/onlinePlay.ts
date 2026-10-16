@@ -1,6 +1,7 @@
 import { addStreamTrack } from "@/lib/onlineApi";
 import { identityId, pickKey, type OnlinePick } from "@/lib/onlinePick";
 import { resolveQuery, type Candidate } from "@/lib/resolverApi";
+import { addPlaylistTrack } from "@/lib/playlistApi";
 import { useLibraryStore } from "@/store/libraryStore";
 import { usePlayerStore } from "@/store/playerStore";
 import { useUiStore } from "@/store/uiStore";
@@ -14,7 +15,7 @@ import type { Track } from "@/lib/types";
     dwell makes the subsequent Enter/click instant. Identity helpers live in
     onlinePick.ts (pure, unit-tested). */
 
-export { pickKey, type OnlinePick } from "@/lib/onlinePick";
+export { pickFromRow, pickKey, type OnlinePick } from "@/lib/onlinePick";
 
 /** Resolved candidates primed on hover (key → candidate). */
 const specCache = new Map<string, Candidate>();
@@ -106,11 +107,16 @@ export async function addPickToPlaylist(
       return false;
     }
     const row = await persistPick(pick, candidate);
-    const { addPlaylistTrack } = await import("@/lib/playlistApi");
     const ok = await addPlaylistTrack(playlistId, row.id);
     if (ok) {
       useUiStore.getState().pushToast({
         message: `Added “${pick.title}” to playlist`,
+        tone: "info",
+      });
+    } else {
+      // playlist_add_track only returns false for "already a member".
+      useUiStore.getState().pushToast({
+        message: "Already in this playlist",
         tone: "info",
       });
     }

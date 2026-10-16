@@ -86,8 +86,9 @@ interface Props {
   addedKey?: string | null;
   onHover: (index: number) => void;
   onPick: (row: ResultRow) => void;
-  /** P9.7: "+ Add" on online track rows. */
-  onAdd?: (row: ResultRow) => void;
+  /** P9.7/P9.8: "+ Add" on online track rows; the button element anchors
+      the playlist menu (portal — the dialog clips absolute children). */
+  onAdd?: (row: ResultRow, button: HTMLElement) => void;
 }
 
 export function SearchResultsList({
@@ -144,7 +145,7 @@ export function SearchResultsList({
                         aria-label={`Add “${row.title}” to a playlist`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          onAdd?.(row);
+                          onAdd?.(row, e.currentTarget);
                         }}
                         className="rounded-6 px-1.5 py-0.5 text-14 text-ink-3 transition hover:bg-glass hover:text-ink-1"
                       >

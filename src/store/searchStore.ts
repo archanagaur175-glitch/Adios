@@ -63,7 +63,15 @@ export const useSearchStore = create<SearchState>((set) => ({
     // (the overlay is global; the route exists so the sidebar link works).
     if (window.location.hash === "#/search") window.location.hash = "#/";
   },
-  setQuery: (query) => set({ query, activeIndex: 0 }),
+  // P9.8 (#3): mark online pending synchronously with the keystroke so the
+  // first paint after typing can never flash "No matches" before the
+  // debounce/effect runs (useEffect paints first, effects after).
+  setQuery: (query) =>
+    set(
+      query.trim()
+        ? { query, activeIndex: 0, onlinePending: true }
+        : { query, activeIndex: 0 },
+    ),
   setLocalResults: (localResults) => set({ localResults }),
   setOnlineResults: (results) =>
     set((state) => ({

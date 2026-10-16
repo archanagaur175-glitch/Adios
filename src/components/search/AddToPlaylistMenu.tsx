@@ -1,20 +1,34 @@
-/** P9.7: tiny playlist picker for "+ Add" on online search rows.
-    Dropdown of playlist names; picking one persists the search hit as a
-    'stream' library row (Rust add_stream_track) and links it (P8.2). */
+/** P9.7/P9.8: playlist picker for "+ Add" on online search rows. P9.8 #1:
+    the menu used to render inside the search dialog — which has
+    overflow-hidden — so it opened CLIPPED OUT OF VIEW (click looked dead).
+    It now portals to document.body with fixed coordinates anchored to the
+    clicked button, flipping upward near the viewport bottom. */
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { addPickToPlaylist, type OnlinePick } from "@/lib/onlinePlay";
 import { listPlaylists } from "@/lib/playlistApi";
 import type { PlaylistSummary } from "@/lib/types";
 
+/** Button-rect anchor, captured at click time (page doesn't move under it). */
+export interface MenuAnchor {
+  left: number;
+  top: number;
+  bottom: number;
+  right: number;
+}
+
+const MENU_ESTIMATE_PX = 240;
+
 interface Props {
   pick: OnlinePick;
+  anchor: MenuAnchor;
   onClose: () => void;
   /** Called after the row was added — the overlay flips it to "Added ✓". */
   onAdded: () => void;
 }
 
-export function AddToPlaylistMenu({ pick, onClose, onAdded }: Props) {
+export function AddToPlaylistMenu({ pick, anchor, onClose, onAdded }: Props) {
   const [playlists, setPlaylists] = useState<PlaylistSummary[]>([]);
   const [busy, setBusy] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -46,12 +60,22 @@ export function AddToPlaylistMenu({ pick, onClose, onAdded }: Props) {
     }
   }
 
-  return (
+  const flipUp = anchor.bottom + MENU_ESTIMATE_PX > window.innerHeight;
+  const style: React.CSSProperties = {
+    position: "fixed",
+    right: Math.max(8, window.innerWidth - anchor.right),
+    ...(flipUp
+      ? { bottom: Math.max(8, window.innerHeight - anchor.top + 4) }
+      : { top: anchor.bottom + 4 }),
+  };
+
+  return createPortal(
     <div
       ref={ref}
       role="menu"
       aria-label="Add to playlist"
-      className="glass absolute right-0 top-full z-10 mt-1 w-56 rounded-card p-1"
+      style={style}
+      className="glass z-50 w-56 rounded-card p-1 shadow-lg"
     >
       {playlists.length === 0 && (
         <p className="px-2 py-1.5 text-12 text-ink-3">No playlists yet.</p>
@@ -68,6 +92,7 @@ export function AddToPlaylistMenu({ pick, onClose, onAdded }: Props) {
           {busy ? "Adding…" : p.name}
         </button>
       ))}
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -6,12 +6,17 @@
     into a playlist. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { playOnlinePick, primeOnlinePick, type OnlinePick } from "@/lib/onlinePlay";
+import {
+  pickFromRow as rowPick,
+  playOnlinePick,
+  primeOnlinePick,
+} from "@/lib/onlinePlay";
 import { usePlayerStore } from "@/store/playerStore";
 import { useUiStore } from "@/store/uiStore";
 import { useSearchStore } from "@/store/searchStore";
 import { useSearchLayers } from "./useSearchLayers";
-import { AddToPlaylistMenu } from "./AddToPlaylistMenu";
+import { useAutoPrime } from "./useAutoPrime";
+import { AddToPlaylistMenu, type MenuAnchor } from "./AddToPlaylistMenu";
 import {
   buildGroups,
   flattenGroups,
@@ -22,16 +27,6 @@ import {
 /** Hover dwell before pre-resolving a row (P9.7): long enough to filter
     accidental passes, short enough to feel instant on a deliberate pick. */
 const PRIME_DWELL_MS = 200;
-
-function rowPick(row: ResultRow): OnlinePick {
-  return {
-    mbid: row.mbid,
-    itunesId: row.itunesId,
-    title: row.title,
-    artist: row.sub,
-    durationMs: row.durationMs,
-  };
-}
 
 export function SearchOverlay() {
   const open = useSearchStore((s) => s.open);
@@ -46,9 +41,10 @@ export function SearchOverlay() {
   const pickingRef = useRef(false);
   const [pickingKey, setPickingKey] = useState<string | null>(null);
   const [addedKey, setAddedKey] = useState<string | null>(null);
-  const [menuRow, setMenuRow] = useState<ResultRow | null>(null);
+  const [menu, setMenu] = useState<{ row: ResultRow; anchor: MenuAnchor } | null>(null);
 
   useSearchLayers(query);
+  useAutoPrime(open, query, onlineTracks);
 
   const trackLabel = useMemo(
     () =>
@@ -173,16 +169,23 @@ export function SearchOverlay() {
             addedKey={addedKey}
             onHover={(i) => useSearchStore.getState().setActiveIndex(i)}
             onPick={pick}
-            onAdd={(row) => setMenuRow(row)}
+            onAdd={(row, button) => {
+              const r = button.getBoundingClientRect();
+              setMenu({
+                row,
+                anchor: { left: r.left, top: r.top, bottom: r.bottom, right: r.right },
+              });
+            }}
           />
         </div>
-        {menuRow && (
+        {menu && (
           <AddToPlaylistMenu
-            pick={rowPick(menuRow)}
-            onClose={() => setMenuRow(null)}
+            pick={rowPick(menu.row)}
+            anchor={menu.anchor}
+            onClose={() => setMenu(null)}
             onAdded={() => {
-              setAddedKey(menuRow.key);
-              setMenuRow(null);
+              setAddedKey(menu.row.key);
+              setMenu(null);
               window.setTimeout(() => setAddedKey(null), 1600);
             }}
           />
