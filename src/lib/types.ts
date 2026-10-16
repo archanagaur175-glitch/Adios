@@ -78,6 +78,20 @@ export interface MbReleaseItem {
   date?: string | null;
 }
 
+// ---------- Disk cache (P8.1) ----------
+
+/** Result of one cache eviction pass (mirrors Rust `EvictStats`). */
+export interface EvictStats {
+  /** Rows deleted: dangling (file gone) + beyond-cap (LRU order). */
+  removed: number;
+  /** Stale `.part-*` temp files swept. */
+  removedParts: number;
+  /** Unreferenced cache files swept (crash leftovers). */
+  removedOrphans: number;
+  freedBytes: number;
+  remainingBytes: number;
+}
+
 // ---------- Lyrics (P7.1) ----------
 
 /** LRCLIB answer for one track (mirrors Rust `LyricsPayload`). */

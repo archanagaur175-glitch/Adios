@@ -127,6 +127,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::settings::get_settings,
             commands::settings::set_setting,
+            commands::settings::run_cache_eviction,
             commands::library::list_tracks,
             commands::library::get_track,
             commands::library::insert_track,

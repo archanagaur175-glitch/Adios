@@ -1,4 +1,5 @@
 pub mod cache;
+pub mod evict;
 pub mod handlers;
 pub mod proxy;
 pub mod range;
@@ -6,6 +7,8 @@ pub mod reresolve;
 pub mod stream;
 pub mod tee;
 
+#[cfg(test)]
+mod evict_tests;
 #[cfg(test)]
 mod proxy_tests;
 #[cfg(test)]

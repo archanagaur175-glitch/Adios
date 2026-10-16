@@ -77,7 +77,20 @@ async fn finalize_tee(tee: &mut Tee) {
     // as soon as the rename lands (no spawn_blocking race with readers).
     if let Ok(conn) = tee.db.lock() {
         let path = tee.final_path.to_string_lossy();
-        let _ = cache_index_put(&conn, &tee.url, &path, Some(&tee.mime), tee.written);
+        if cache_index_put(&conn, &tee.url, &path, Some(&tee.mime), tee.written).is_ok() {
+            // P8.1: enforce the size cap on every write (quiet when it fits).
+            let cap = crate::server::evict::cache_cap_bytes(&conn);
+            let dir = tee.final_path.parent().unwrap_or(std::path::Path::new("."));
+            if let Ok(stats) = crate::server::evict::evict_to_cap(&conn, dir, cap)
+                && stats.removed + stats.removed_parts + stats.removed_orphans > 0
+            {
+                println!(
+                    "[cache] evict (tee) removed={} parts={} orphans={} left={}B",
+                    stats.removed, stats.removed_parts, stats.removed_orphans,
+                    stats.remaining_bytes
+                );
+            }
+        }
     }
 }
 

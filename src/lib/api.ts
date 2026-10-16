@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { LyricsPayload, SearchPage, Track } from "@/lib/types";
+import type { EvictStats, LyricsPayload, SearchPage, Track } from "@/lib/types";
 
 /** True when running inside the Tauri webview (not plain vite/preview). */
 export const inTauri = "__TAURI_INTERNALS__" in window;
@@ -112,8 +112,8 @@ export async function buildRemoteMediaUrl(url: string): Promise<string | null> {
   return `${info.baseUrl}/media/${info.token}?url=${encodeURIComponent(url)}`;
 }
 
-/** Media URL for a track — local path or remote URL, both via the
-    loopback server (Invariant 1: ALL audio goes through the proxy). */
+/** Media URL for a track — local path or remote URL, both via the loopback
+    server (Invariant 1: ALL audio goes through the proxy). */
 export async function trackMediaUrl(
   track: Pick<Track, "path" | "url">,
 ): Promise<string | null> {
@@ -183,12 +183,16 @@ export async function searchMetadata<T>(
 
 // ---------- Lyrics (P7.1) ----------
 
-/**
- * LRCLIB lyrics for one track (local-first: `lyrics_cache` hit or negative
- * row returns with zero network). `found:false` = known absent; the command
- * only rejects on transient transport failure (nothing cached then).
- */
 export async function getLyrics(trackId: number): Promise<LyricsPayload> {
   if (!inTauri) return { found: false, instrumental: false, source: "none" };
   return invoke<LyricsPayload>("get_lyrics", { trackId });
+}
+
+// ---------- Disk cache (P8.1) ----------
+
+/** Apply the `cacheSizeMb` cap now; zeros outside Tauri. */
+export async function runCacheEviction(): Promise<EvictStats> {
+  if (!inTauri)
+    return { removed: 0, removedParts: 0, removedOrphans: 0, freedBytes: 0, remainingBytes: 0 };
+  return invoke<EvictStats>("run_cache_eviction");
 }
