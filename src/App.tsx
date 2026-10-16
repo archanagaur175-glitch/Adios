@@ -8,6 +8,7 @@ import { Announcer } from "@/components/common/Announcer";
 import { ImmersiveLyrics } from "@/components/lyrics/ImmersiveLyrics";
 import { inTauri, listTracks } from "@/lib/api";
 import { attachSessionPersist, restoreSession } from "@/lib/session";
+import { initPlayHistory } from "@/lib/playHistory";
 import { initYtdlpPathSync } from "@/lib/ytdlpSync";
 import { useLibraryStore } from "@/store/libraryStore";
 import { initBandsBridge } from "@/visuals/audioBandsBridge";
@@ -39,6 +40,8 @@ function App() {
     const detachPersist = attachSessionPersist();
     // P9.4 (OQ2): keep ytdlpPath fresh even if Settings unmounts mid-update.
     const detachYtdlpSync = initYtdlpPathSync();
+    // P10: one play record per track start (pure rule in lib/playGate.ts).
+    const detachPlayHistory = initPlayHistory();
     if (inTauri) {
       void listTracks()
         .then(useLibraryStore.getState().setTracks)
@@ -51,6 +54,7 @@ function App() {
     return () => {
       detachPersist();
       detachYtdlpSync();
+      detachPlayHistory();
       stopBands();
       stopPalette();
       stopBattery();

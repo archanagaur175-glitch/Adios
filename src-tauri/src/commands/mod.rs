@@ -1,5 +1,6 @@
 pub mod cover;
 pub mod enrich;
+pub mod history;
 pub mod library;
 pub mod lyrics;
 pub mod playlists;

@@ -174,7 +174,9 @@ pub fn run() {
             commands::playlists::playlist_import_file,
             commands::session::session_save_queue,
             commands::session::session_load_queue,
-            commands::session::list_cached_tracks
+            commands::session::list_cached_tracks,
+            commands::history::record_play,
+            commands::history::list_play_history
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

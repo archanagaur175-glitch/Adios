@@ -30,6 +30,8 @@ export interface Track {
   mtime?: number | null;
   addedAt: string;
   playCount: number;
+  /** UTC stamp written on every play (null until first play). */
+  lastPlayedAt?: string | null;
 }
 
 export interface Playlist {

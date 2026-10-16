@@ -64,11 +64,12 @@ pub struct TrackRow {
     pub mb_release_id: Option<String>,
     pub added_at: String,
     pub play_count: i64,
+    pub last_played_at: Option<String>,
 }
 
 pub(super) const TRACK_COLUMNS: &str = "id, source, path, url, artist, title, album, duration_ms,
     year, track_no, disc_no, cover_path, accent, accent2, dominant_colors_json,
-    mb_recording_id, mb_release_id, added_at, play_count";
+    mb_recording_id, mb_release_id, added_at, play_count, last_played_at";
 
 pub(super) fn row_to_track(row: &rusqlite::Row<'_>) -> Result<TrackRow> {
     Ok(TrackRow {
@@ -91,6 +92,7 @@ pub(super) fn row_to_track(row: &rusqlite::Row<'_>) -> Result<TrackRow> {
         mb_release_id: row.get(16)?,
         added_at: row.get(17)?,
         play_count: row.get(18)?,
+        last_played_at: row.get(19)?,
     })
 }
 

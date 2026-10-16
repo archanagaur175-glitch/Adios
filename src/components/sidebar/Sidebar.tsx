@@ -1,14 +1,13 @@
 import { NavLink } from "react-router";
 import "./sidebar.css";
 
-type IconName = "home" | "search" | "library" | "playlist" | "download";
+type IconName = "home" | "search" | "library" | "playlist";
 
 const paths: Record<IconName, string> = {
   home: "M2 6l6-4 6 4v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z",
   search: "M7 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm4 0l4 4",
   library: "M2 2v12M6 2v12M10 3l4-1 2 11-4 1z",
   playlist: "M2 4h8M2 8h8M2 12h5M12 6v6m0 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0-6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z",
-  download: "M8 2v8m0 0L5 7m3 3l3-3M3 13h10",
 };
 
 function Icon({ name }: { name: IconName }) {
@@ -24,7 +23,6 @@ const links: { to: string; label: string; icon: IconName; end?: boolean }[] = [
   { to: "/search", label: "Search", icon: "search" },
   { to: "/library", label: "Library", icon: "library" },
   { to: "/playlists", label: "Playlists", icon: "playlist" },
-  { to: "/cached", label: "Cached", icon: "download" },
 ];
 
 export function Sidebar({

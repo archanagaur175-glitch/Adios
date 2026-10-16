@@ -1,4 +1,5 @@
 pub mod fts;
+pub mod history;
 pub mod lyrics_cache;
 pub mod migrations;
 pub mod playlist;

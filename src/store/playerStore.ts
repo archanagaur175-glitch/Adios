@@ -22,6 +22,9 @@ interface PlayerState {
   shuffle: boolean;
   /** Bumped by seekTo; the engine listens and applies it (no echo loop). */
   seekVersion: number;
+  /** Bumped by playQueue; play-history counts one play per epoch or track
+      change (P10) so replaying the same track still increments the count. */
+  playEpoch: number;
 
   setQueue: (trackIds: number[], startIndex?: number) => void;
   /** Atomically set queue + current track + start playback. */
@@ -58,6 +61,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   repeatMode: "off",
   shuffle: false,
   seekVersion: 0,
+  playEpoch: 0,
 
   setQueue: (trackIds, startIndex = 0) =>
     set({
@@ -66,14 +70,15 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       currentTrackId: trackIds[startIndex] ?? null,
     }),
   playQueue: (trackIds, startIndex = 0) =>
-    set({
+    set((state) => ({
       queue: trackIds,
       queueIndex: clamp(startIndex, 0, trackIds.length - 1),
       currentTrackId: trackIds[startIndex] ?? null,
       isPlaying: true,
       positionSec: 0,
       durationSec: 0,
-    }),
+      playEpoch: state.playEpoch + 1,
+    })),
   setPlaying: (isPlaying) => set({ isPlaying }),
   setPosition: (positionSec) => set({ positionSec }),
   setDuration: (durationSec) => set({ durationSec }),
