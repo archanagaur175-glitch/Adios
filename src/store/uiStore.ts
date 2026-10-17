@@ -19,6 +19,8 @@ interface UiState {
   qualityTier: QualityTier;
   ecoMode: boolean;
   toasts: Toast[];
+  /** P15: per-playlist "recommendations" toggle (playlistId → on). */
+  recPrefs: Record<number, boolean>;
 
   setSidebarCollapsed: (collapsed: boolean) => void;
   setNowPlayingOpen: (open: boolean) => void;
@@ -28,6 +30,7 @@ interface UiState {
   setEcoMode: (eco: boolean) => void;
   pushToast: (toast: Omit<Toast, "id">) => void;
   dismissToast: (id: number) => void;
+  setRecPref: (playlistId: number, on: boolean) => void;
 }
 
 let nextToastId = 1;
@@ -42,6 +45,7 @@ export const useUiStore = create<UiState>()(
       qualityTier: "med",
       ecoMode: false,
       toasts: [],
+      recPrefs: {},
 
       setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
       setNowPlayingOpen: (nowPlayingOpen) => set({ nowPlayingOpen }),
@@ -53,12 +57,15 @@ export const useUiStore = create<UiState>()(
         set({ toasts: [...get().toasts, { ...toast, id: nextToastId++ }] }),
       dismissToast: (id) =>
         set({ toasts: get().toasts.filter((t) => t.id !== id) }),
+      setRecPref: (playlistId, on) =>
+        set({ recPrefs: { ...get().recPrefs, [playlistId]: on } }),
     }),
     {
       name: "adios-ui",
       partialize: (state) => ({
         sidebarCollapsed: state.sidebarCollapsed,
         qualityTier: state.qualityTier,
+        recPrefs: state.recPrefs,
       }),
     },
   ),

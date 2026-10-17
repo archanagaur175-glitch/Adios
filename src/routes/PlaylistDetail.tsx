@@ -10,8 +10,10 @@ import { AddTracks } from "@/components/playlists/AddTracks";
 import { DragTrackList } from "@/components/playlists/DragTrackList";
 import { PlaylistHeaderActions } from "@/components/playlists/PlaylistHeaderActions";
 import { refreshCachedIds } from "@/lib/downloadApi";
+import { startRecs } from "@/lib/recQueue";
 import { useDownloadStore } from "@/store/downloadStore";
 import { usePlayerStore } from "@/store/playerStore";
+import { useUiStore } from "@/store/uiStore";
 import type { PlaylistDetail } from "@/lib/types";
 
 /** Playlist detail (P8.2): rename/delete, add tracks, drag-reorder, export.
@@ -52,6 +54,7 @@ export default function PlaylistDetailPage() {
     usePlayerStore
       .getState()
       .playQueue(detail.tracks.map((t) => t.id), detail.tracks.findIndex((t) => t.id === trackId));
+    if (useUiStore.getState().recPrefs[id] ?? false) startRecs(id, detail.tracks);
   }
 
   async function reorder(trackIds: number[]) {

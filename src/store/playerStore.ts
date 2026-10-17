@@ -39,6 +39,12 @@ interface PlayerState {
   setCrossfadeMs: (ms: number) => void;
   setRepeatMode: (mode: RepeatMode) => void;
   setShuffle: (shuffle: boolean) => void;
+  /** P15: insert a rec at a queue position; keeps the current track playing
+      (shifts queueIndex when inserting at/before it). */
+  insertQueueAt: (trackId: number, index: number) => void;
+  /** P15: drop queue entries by id, never the current track; recomputes
+      queueIndex from the kept entries. */
+  removeQueueTracks: (ids: number[], keepId: number | null) => void;
   next: () => void;
   prev: () => void;
   /** Id the queue would advance to (for preloading); null at queue end. */
@@ -95,6 +101,37 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setCrossfadeMs: (ms) => set({ crossfadeMs: clamp(Math.round(ms), 0, 8000) }),
   setRepeatMode: (repeatMode) => set({ repeatMode }),
   setShuffle: (shuffle) => set({ shuffle }),
+
+  insertQueueAt: (trackId, index) =>
+    set((state) => {
+      const at = clamp(Math.round(index), 0, state.queue.length);
+      const queue = [...state.queue];
+      queue.splice(at, 0, trackId);
+      const queueIndex =
+        at <= state.queueIndex && state.queueIndex >= 0
+          ? state.queueIndex + 1
+          : state.queueIndex;
+      return { queue, queueIndex };
+    }),
+  removeQueueTracks: (ids, keepId) =>
+    set((state) => {
+      if (state.queue.length === 0) return state;
+      const drop = new Set(ids);
+      const queue: number[] = [];
+      let newIndex = -1;
+      state.queue.forEach((id, i) => {
+        const isCurrent = i === state.queueIndex;
+        if (drop.has(id) && !isCurrent && id !== keepId) return;
+        if (isCurrent) newIndex = queue.length;
+        queue.push(id);
+      });
+      if (newIndex < 0) newIndex = queue.length > 0 ? 0 : -1;
+      return {
+        queue,
+        queueIndex: clamp(newIndex, -1, queue.length - 1),
+        currentTrackId: queue[newIndex] ?? state.currentTrackId,
+      };
+    }),
 
   next: () => {
     const { queue, queueIndex, repeatMode, shuffle } = get();

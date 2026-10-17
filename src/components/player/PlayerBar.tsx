@@ -6,6 +6,7 @@ import { useLibraryStore } from "@/store/libraryStore";
 import { usePlayerStore } from "@/store/playerStore";
 import { useUiStore } from "@/store/uiStore";
 import { CrossFadeArt } from "./CrossFadeArt";
+import { AddToPlaylistButton } from "./AddToPlaylistButton";
 import {
   IconLyrics,
   IconMute,
@@ -156,25 +157,26 @@ export function PlayerBar() {
         >
           {muted || volume === 0 ? <IconMute /> : <IconVolume />}
         </button>
-          <input
-            type="range"
-            aria-label="Volume"
-            min={0}
-            max={1}
-            step={0.01}
-            value={muted ? 0 : volume}
-            onChange={(e) => usePlayerStore.getState().setVolume(Number(e.target.value))}
-          />
-          <button
-            type="button"
-            aria-label="Lyrics"
-            aria-pressed={lyricsOpen}
-            className="player-bar__btn"
-            onClick={() => useUiStore.getState().setLyricsOpen(!lyricsOpen)}
-          >
-            <IconLyrics />
-          </button>
-        </div>
+        <input
+          type="range"
+          aria-label="Volume"
+          min={0}
+          max={1}
+          step={0.01}
+          value={muted ? 0 : volume}
+          onChange={(e) => usePlayerStore.getState().setVolume(Number(e.target.value))}
+        />
+        <button
+          type="button"
+          aria-label="Lyrics"
+          aria-pressed={lyricsOpen}
+          className="player-bar__btn"
+          onClick={() => useUiStore.getState().setLyricsOpen(!lyricsOpen)}
+        >
+          <IconLyrics />
+        </button>
+        <AddToPlaylistButton />
+      </div>
     </footer>
   );
 }

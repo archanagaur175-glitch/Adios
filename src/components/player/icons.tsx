@@ -22,6 +22,19 @@ export function IconPlay({ className }: Props) {
   );
 }
 
+/** P15.3: playlist-add (list + plus) for the player bar. */
+export function IconAddToList({ className }: Props) {
+  return (
+    <svg {...base} className={className}>
+      <line x1="3" y1="6" x2="13" y2="6" />
+      <line x1="3" y1="12" x2="10" y2="12" />
+      <line x1="3" y1="18" x2="8" y2="18" />
+      <line x1="17" y1="13" x2="17" y2="21" />
+      <line x1="13" y1="17" x2="21" y2="17" />
+    </svg>
+  );
+}
+
 export function IconPause({ className }: Props) {
   return (
     <svg {...base} className={className} fill="currentColor" stroke="none">

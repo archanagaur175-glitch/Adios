@@ -1,4 +1,4 @@
-/* Player bar — fixed bottom glass panel (matches app-shell offsets) */
+﻿/* Player bar â€” fixed bottom glass panel (matches app-shell offsets) */
 
 .player-bar {
   position: fixed;
@@ -150,8 +150,11 @@
   cursor: default;
 }
 
-.player-bar__btn[aria-pressed="true"] {
+/* P15.1: pressed toggles get tint pill + ring, not just a recolor (--accent is per-track). */
+.player-bar__btn[aria-pressed="true"]:not(:disabled) {
   color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 25%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 55%, transparent);
 }
 
 .player-bar__btn--primary {

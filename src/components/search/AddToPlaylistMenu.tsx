@@ -23,7 +23,9 @@ export interface MenuAnchor {
 const MENU_ESTIMATE_PX = 240;
 
 interface Props {
-  pick: OnlinePick;
+  /** P15: optional — the player bar adds an existing library track (no
+      resolve/prime needed); search rows still pass a pick to prime it. */
+  pick?: OnlinePick;
   anchor: MenuAnchor;
   onClose: () => void;
   /** P9.9: parent starts the optimistic add and unmounts this menu. */
@@ -37,7 +39,7 @@ export function AddToPlaylistMenu({ pick, anchor, onClose, onChoose }: Props) {
   // P9.9: intent shown the moment "+" is clicked — starts the shared
   // flight (idempotent: an existing prime/cache hit is left alone).
   useEffect(() => {
-    primeOnlinePick(pick);
+    if (pick) primeOnlinePick(pick);
   }, [pick]);
 
   useEffect(() => {

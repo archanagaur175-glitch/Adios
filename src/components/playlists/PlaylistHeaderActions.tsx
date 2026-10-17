@@ -2,12 +2,14 @@ import { useNavigate } from "react-router";
 import { save } from "@tauri-apps/plugin-dialog";
 import { deletePlaylist, exportPlaylistFile } from "@/lib/playlistApi";
 import { downloadTracks } from "@/lib/downloadApi";
+import { startRecs, stopRecs } from "@/lib/recQueue";
 import { usePlayerStore } from "@/store/playerStore";
 import { useUiStore } from "@/store/uiStore";
 import type { Track } from "@/lib/types";
 
 /** P14: playlist header buttons — Play, Shuffle, Download playlist, Delete,
-    Export JSON. Extracted from PlaylistDetail (line budget). */
+    Export JSON. Extracted from PlaylistDetail (line budget).
+    P15: Recommendations toggle — queue-only recs for this playlist. */
 
 interface Props {
   playlistId: number;
@@ -22,10 +24,12 @@ const btn =
 export function PlaylistHeaderActions({ playlistId, name, tracks, onChanged }: Props) {
   const navigate = useNavigate();
   const pushToast = useUiStore((s) => s.pushToast);
+  const recOn = useUiStore((s) => s.recPrefs[playlistId] ?? false);
 
   function playAll() {
     if (tracks.length === 0) return;
     usePlayerStore.getState().playQueue(tracks.map((t) => t.id), 0);
+    if (recOn) startRecs(playlistId, tracks);
   }
 
   function shuffleAll() {
@@ -36,6 +40,16 @@ export function PlaylistHeaderActions({ playlistId, name, tracks, onChanged }: P
       [ids[i], ids[j]] = [ids[j], ids[i]];
     }
     usePlayerStore.getState().playQueue(ids, 0);
+    if (recOn) startRecs(playlistId, tracks);
+  }
+
+  /** P15: ON starts immediately (if something is queued); OFF aborts the
+      session and purges queued recs at once. */
+  function toggleRecs() {
+    const next = !recOn;
+    useUiStore.getState().setRecPref(playlistId, next);
+    if (next) startRecs(playlistId, tracks);
+    else stopRecs(playlistId);
   }
 
   async function remove() {
@@ -91,6 +105,15 @@ export function PlaylistHeaderActions({ playlistId, name, tracks, onChanged }: P
         className={btn}
       >
         Shuffle
+      </button>
+      <button
+        type="button"
+        onClick={toggleRecs}
+        aria-pressed={recOn}
+        title="Recommendations: queue similar tracks while this playlist plays (queue only — the playlist is untouched)"
+        className={`${btn} min-w-40 ${recOn ? "border-accent bg-accent/15 text-accent" : ""}`}
+      >
+        {recOn ? "Recs: on" : "Recs: off"}
       </button>
       <button type="button" onClick={() => void downloadAll()} className={btn}>
         Download playlist
