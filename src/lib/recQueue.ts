@@ -76,6 +76,7 @@ export function startRecs(playlistId: number, tracks: Track[]): void {
 
 export function toPick(c: RecCandidate): OnlinePick {
   return {
+    mbid: c.mbid ?? undefined,
     itunesId: c.itunesId,
     title: c.title,
     artist: c.artist,

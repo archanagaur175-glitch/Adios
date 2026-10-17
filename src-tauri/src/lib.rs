@@ -184,7 +184,8 @@ pub fn run() {
             commands::history::record_play,
             commands::history::list_play_history,
             commands::download::download_track,
-            commands::session::cached_track_ids
+            commands::session::cached_track_ids,
+            commands::spotify::spotify_fetch_playlist
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

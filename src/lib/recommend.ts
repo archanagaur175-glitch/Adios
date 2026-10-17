@@ -2,7 +2,11 @@
     these; no tauri/zustand so they're unit-testable in node). */
 
 export interface RecCandidate {
-  itunesId: number;
+  /** iTunes track id (P15/16 rows); optional since P17 — Spotify picks
+      carry an `mbid` (`spotify:track:<id>`) instead. */
+  itunesId?: number;
+  /** External identity for non-iTunes picks (P17 Spotify import). */
+  mbid?: string | null;
   title: string;
   artist: string;
   durationMs?: number | null;
@@ -84,9 +88,12 @@ export function findLibraryMatch(
     mbRecordingId?: string | null;
   }[],
 ): number | null {
-  const identity = `itunes:${cand.itunesId}`;
-  const byId = tracks.find((t) => t.mbRecordingId === identity);
-  if (byId) return byId.id;
+  const identity =
+    cand.itunesId != null ? `itunes:${cand.itunesId}` : (cand.mbid ?? null);
+  if (identity) {
+    const byId = tracks.find((t) => t.mbRecordingId === identity);
+    if (byId) return byId.id;
+  }
   const key = normalizeMeta(cand.title, cand.artist);
   const byMeta = tracks.find(
     (t) => normalizeMeta(t.title, t.artist) === key,

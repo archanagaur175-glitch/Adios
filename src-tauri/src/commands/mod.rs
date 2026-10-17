@@ -10,4 +10,5 @@ pub mod search;
 pub mod server;
 pub mod session;
 pub mod settings;
+pub mod spotify;
 pub mod ytdlp;

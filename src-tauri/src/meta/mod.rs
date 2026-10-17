@@ -21,6 +21,9 @@ pub mod mb_parse;
 pub mod mb_types;
 pub mod palette;
 pub mod rate_limit;
+pub mod spotify_embed;
+pub mod spotify_embed_parse;
+pub mod spotify_embed_types;
 pub mod stream_art;
 
 #[cfg(test)]
@@ -43,5 +46,7 @@ mod mb_types_tests;
 mod palette_tests;
 #[cfg(test)]
 mod rate_limit_tests;
+#[cfg(test)]
+mod spotify_embed_tests;
 #[cfg(test)]
 mod stream_art_tests;

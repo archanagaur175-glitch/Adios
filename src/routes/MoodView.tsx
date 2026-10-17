@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { CoverArt } from "@/components/common/CoverArt";
-import { saveMoodToPlaylist } from "@/lib/moodSave";
+import { savePicksToPlaylist } from "@/lib/playlistSave";
 import { moodById } from "@/lib/moods";
 import { searchItunes } from "@/lib/onlineApi";
 import { playOnlinePick, primeOnlinePick } from "@/lib/onlinePlay";
@@ -15,7 +15,7 @@ import { useUiStore } from "@/store/uiStore";
 /** P16 (B): `#/moods/:id` — the mood's iTunes query runs ON OPEN (Rust
     search cache). Rows play in place (library fast-path → playOnlinePick),
     Play/Shuffle run the recQueue pick session (first pick replaces the
-    queue, the rest trickle), Save walks the sequential moodSave flow with
+    queue, the rest trickle), Save walks the sequential save flow with
     an inline `Saving n/total…` readout. Unknown id → honest dead end. */
 
 /** Matches the plan's `Saving 4/12…` readout — 12 rows keeps a full
@@ -78,7 +78,7 @@ export default function MoodPage() {
   async function save() {
     if (!mood || saving > 0 || picks.length === 0) return;
     setSaving(1);
-    const res = await saveMoodToPlaylist(mood.name, picks, (done) => setSaving(done));
+    const res = await savePicksToPlaylist(mood.name, picks, (done) => setSaving(done));
     setSaving(0);
     if (!res || res.added === 0) {
       pushToast({ message: `Nothing saved for “${mood.name}” — no streams found`, tone: "danger" });
@@ -151,7 +151,7 @@ export default function MoodPage() {
       ) : (
         <ul className="flex flex-col gap-2">
           {picks.map((p) => (
-            <li key={p.itunesId}>
+            <li key={p.itunesId ?? `${p.title}|${p.artist}`}>
               <button
                 type="button"
                 onMouseEnter={() => primeOnlinePick(toPick(p))}

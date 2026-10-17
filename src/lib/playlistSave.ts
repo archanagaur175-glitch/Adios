@@ -4,12 +4,13 @@ import { toPick } from "@/lib/recQueue";
 import { addPlaylistTrack, createPlaylist } from "@/lib/playlistApi";
 import { useLibraryStore } from "@/store/libraryStore";
 
-/** P16: "Save to playlists" for a mood — `playlist_create`, then one
-    sequential resolve → persist → `playlist_add_track` per pick (slow but
-    honest: no parallel resolver chains, library rows reused via
-    `findLibraryMatch` fast-path). Single-flight: one save at a time, a
-    second call while running returns null. Failures are SKIPPED, never
-    thrown; `onProgress` fires after every item for the inline
+/** P16/P17: sequential "save picks to a playlist" engine —
+    `playlist_create`, then one resolve → persist → `playlist_add_track`
+    per pick (slow but honest: no parallel resolver chains, library rows
+    reused via `findLibraryMatch` fast-path). Shared by the mood view
+    (P16.6) and the Spotify import (P17.3). Single-flight: one save at a
+    time, a second call while running returns null. Failures are SKIPPED,
+    never thrown; `onProgress` fires after every item for the inline
     `Saving 4/12…` readout. */
 
 export interface SaveResult {
@@ -25,7 +26,7 @@ export function isSaving(): boolean {
   return running;
 }
 
-export async function saveMoodToPlaylist(
+export async function savePicksToPlaylist(
   name: string,
   picks: RecCandidate[],
   onProgress: (done: number, total: number) => void,
@@ -50,7 +51,7 @@ export async function saveMoodToPlaylist(
             rowId = row.id;
           }
         } catch (err) {
-          console.warn("[moodSave] resolve failed:", err);
+          console.warn("[playlistSave] resolve failed:", err);
         }
       }
       if (rowId == null) {

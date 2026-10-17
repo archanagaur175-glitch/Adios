@@ -122,3 +122,32 @@ describe("findLibraryMatch (P15)", () => {
     ).toBeNull();
   });
 });
+
+describe("findLibraryMatch (P17 Spotify identity)", () => {
+  const tracks = [
+    {
+      id: 21,
+      title: "Song One",
+      artist: "Artist A",
+      mbRecordingId: "spotify:track:AAAAAAAAAAAAAAAAAAAAA1",
+    },
+    { id: 22, title: "Other", artist: "Zed", mbRecordingId: "itunes:9" },
+  ];
+
+  it("matches by mbid when there is no itunesId", () => {
+    expect(
+      findLibraryMatch(
+        { mbid: "spotify:track:AAAAAAAAAAAAAAAAAAAAA1", title: "ignored", artist: "zz" },
+        tracks,
+      ),
+    ).toBe(21);
+  });
+
+  it("itunes identity never collides with a spotify-identity row", () => {
+    expect(findLibraryMatch({ itunesId: 9, title: "ignored", artist: "zz" }, tracks)).toBe(22);
+  });
+
+  it("no identity at all still matches by normalized meta", () => {
+    expect(findLibraryMatch({ title: "  other ", artist: "zed" }, tracks)).toBe(22);
+  });
+});
