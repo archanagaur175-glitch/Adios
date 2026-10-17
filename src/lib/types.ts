@@ -22,7 +22,8 @@ export interface Track {
   accent2?: string | null;
   /** JSON array of 3 dominant colors from the cover downscale, as stored by Rust. */
   dominantColorsJson?: string | null;
-  /** MusicBrainz identifiers written by import enrichment (P5.4). */
+  /** MusicBrainz identifiers (written by import enrichment, removed in P12 —
+      historical rows may still carry them). */
   mbRecordingId?: string | null;
   mbReleaseId?: string | null;
   /** File size in bytes (local files). */

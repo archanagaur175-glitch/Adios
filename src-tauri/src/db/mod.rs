@@ -7,7 +7,6 @@ pub mod playlist_io;
 pub mod queries;
 pub mod session;
 pub mod stream;
-pub mod track_mb;
 
 #[cfg(test)]
 mod fts_tests;

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { searchLocal } from "@/lib/api";
 import { addPlaylistTrack } from "@/lib/playlistApi";
 import { formatDuration } from "@/lib/format";
+import { CoverArt } from "@/components/common/CoverArt";
+import { downloadOnlinePick } from "@/lib/downloadApi";
 import { fetchOnlineTracks, type OnlineTrackHit } from "@/components/search/onlineTracks";
 import { useAutoPrime } from "@/components/search/useAutoPrime";
 import {
@@ -14,20 +16,15 @@ import type { Track } from "@/lib/types";
 
 interface Props {
   playlistId: number;
-  /** Current member ids — excluded from the picker. */
-  memberIds: Set<number>;
-  /** Refresh the parent detail after a successful add. */
-  onAdded: () => void;
+  memberIds: Set<number>; // current member ids — excluded from the picker
+  onAdded: () => void; // refresh the parent detail after a successful add
 }
 
 const ONLINE_DEBOUNCE_MS = 275;
-/** P9.9: same dwell as the Ctrl+K overlay's hover prime. */
-const PRIME_DWELL_MS = 200;
+const PRIME_DWELL_MS = 200; // P9.9: same dwell as the Ctrl+K overlay's hover prime.
 
-/** P8.2 library search + P9.8 #2 online layer + P9.9 priming (top-2 on
-    arrival + 200 ms hover dwell) and optimistic add ("Adding…" badge
-    while resolve→persist→link finish in the background; toast + onAdded
-    report the outcome). */
+/** P8.2 library search + P9.8 #2 online layer + P9.9 priming/optimistic
+    add + P12 ⭳ pinned downloads on online rows. */
 export function AddTracks({ playlistId, memberIds, onAdded }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Track[]>([]);
@@ -36,13 +33,8 @@ export function AddTracks({ playlistId, memberIds, onAdded }: Props) {
   const [addingKey, setAddingKey] = useState<string | null>(null);
   const hoverTimer = useRef<number | undefined>(undefined);
   const pushToast = useUiStore((s) => s.pushToast);
-
   const hitPick = (h: OnlineTrackHit): OnlinePick => ({
-    mbid: h.mbid,
-    itunesId: h.itunesId,
-    title: h.title,
-    artist: h.artist,
-    durationMs: h.durationMs,
+    mbid: h.mbid, itunesId: h.itunesId, title: h.title, artist: h.artist, durationMs: h.durationMs,
   });
 
   // Local FTS layer (instant).
@@ -91,8 +83,7 @@ export function AddTracks({ playlistId, memberIds, onAdded }: Props) {
     };
   }, [query]);
 
-  // P9.9: prime top results on arrival (useAutoPrime — same contract as
-  // the overlay) + the hovered row after a 200 ms dwell.
+  // P9.9: prime top results on arrival + the hovered row after a 200 ms dwell.
   useAutoPrime(true, query, online);
   useEffect(() => () => window.clearTimeout(hoverTimer.current), []);
   const primeHovered = (hit: OnlineTrackHit): void => {
@@ -114,8 +105,7 @@ export function AddTracks({ playlistId, memberIds, onAdded }: Props) {
     }
   }
 
-  /** P9.9 optimistic: badge "Adding…" synchronously with the click, then
-      resolve→persist→link off the UI thread of the interaction. */
+  // P9.9 optimistic: "Adding…" badge sync with the click, resolve off-thread.
   function addOnline(hit: OnlineTrackHit) {
     if (addingKey === hit.mbid) return;
     const key = hit.mbid;
@@ -154,9 +144,10 @@ export function AddTracks({ playlistId, memberIds, onAdded }: Props) {
             <button
               type="button"
               onClick={() => void add(track)}
-              className="flex w-full items-center justify-between rounded-card px-3 py-2 text-left transition hover:bg-glass"
+              className="flex w-full items-center gap-2 rounded-card px-3 py-2 text-left transition hover:bg-glass"
             >
-              <span className="min-w-0 truncate text-14 text-ink-1">
+              <CoverArt track={track} size={32} />
+              <span className="min-w-0 flex-1 truncate text-14 text-ink-1">
                 {track.artist} — {track.title}
               </span>
               <span className="ml-3 shrink-0 text-12 tabular text-ink-3">
@@ -175,13 +166,15 @@ export function AddTracks({ playlistId, memberIds, onAdded }: Props) {
             key={hit.mbid}
             onMouseEnter={() => primeHovered(hit)}
             onMouseLeave={cancelHover}
+            className="flex items-center gap-1"
           >
             <button
               type="button"
               onClick={() => addOnline(hit)}
-              className="flex w-full items-center justify-between rounded-card px-3 py-2 text-left transition hover:bg-glass"
+              className="flex min-w-0 flex-1 items-center gap-2 rounded-card px-3 py-2 text-left transition hover:bg-glass"
             >
-              <span className="min-w-0 truncate text-14 text-ink-1">
+              <CoverArt track={hit} size={32} />
+              <span className="min-w-0 flex-1 truncate text-14 text-ink-1">
                 {hit.artist} — {hit.title}
               </span>
               <span className="ml-3 shrink-0 text-12 tabular text-ink-3">
@@ -189,6 +182,14 @@ export function AddTracks({ playlistId, memberIds, onAdded }: Props) {
                   ? "Adding…"
                   : `${formatDuration(hit.durationMs)} · add`}
               </span>
+            </button>
+            <button
+              type="button"
+              aria-label={`Download “${hit.title}”`}
+              onClick={() => void downloadOnlinePick(hitPick(hit))}
+              className="shrink-0 rounded-6 px-1.5 py-0.5 text-14 text-ink-3 transition hover:bg-glass hover:text-ink-1"
+            >
+              ⭳
             </button>
           </li>
         ))}

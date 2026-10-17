@@ -1,8 +1,8 @@
-//! CAA front-cover persistence (P5.2 core, extracted in P5.4 so import
-//! enrichment and the `fetch_cover` command share ONE code path): cache
-//! short-circuit (stored MBID + file on disk = zero network) → fetch →
-//! 512² JPEG shape → 3-color palette → track row. Logs `[caa] cache hit`
-//! / `[caa] fetched …` exactly as the P5.2 gate recorded.
+//! CAA front-cover persistence (P5.2 core, extracted in P5.4; import
+//! enrichment is gone as of P12, the `fetch_cover` command remains the one
+//! caller): cache short-circuit (stored MBID + file on disk = zero network)
+//! → fetch → 512² JPEG shape → 3-color palette → track row. Logs
+//! `[caa] cache hit` / `[caa] fetched …` exactly as the P5.2 gate recorded.
 
 use std::path::Path;
 use std::time::Instant;

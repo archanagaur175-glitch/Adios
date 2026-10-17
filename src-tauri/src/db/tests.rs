@@ -51,7 +51,6 @@ fn migration_rerun_is_noop() {
     let count: i64 = conn
         .query_row("SELECT count(*) FROM schema_migrations", [], |r| r.get(0))
         .expect("count");
-    // Every MIGRATIONS entry is recorded exactly once (001 + 002).
     assert_eq!(count, crate::db::migrations::MIGRATIONS.len() as i64);
 }
 
@@ -61,7 +60,7 @@ fn version_mismatch_skips_reapplied_migration() {
     conn.execute_batch(SCHEMA_VERSION_TABLE).unwrap();
     // Fake EVERY migration as applied without its tables — this test is
     // about version-gating, not SQL validity (002 ALTERs a table 001 made).
-    for (version, name) in [(1i64, "001_init"), (2i64, "002_lyrics_cache")] {
+    for (version, name) in [(1i64, "001_init"), (2i64, "002_lyrics_cache"), (3i64, "003_download_pins")] {
         conn.execute(
             "INSERT INTO schema_migrations (version, name) VALUES (?1, ?2)",
             rusqlite::params![version, name],

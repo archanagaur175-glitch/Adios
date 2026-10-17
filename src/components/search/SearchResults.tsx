@@ -3,6 +3,7 @@
     MB fallback), albums, artists. Flattened row order matches the keyboard
     navigation index. Online track rows carry a "+ Add" button (P9.7). */
 
+import { CoverArt } from "@/components/common/CoverArt";
 import { formatDuration } from "@/lib/format";
 import type { OnlineResult } from "@/store/searchStore";
 import type { Track } from "@/lib/types";
@@ -19,6 +20,9 @@ export interface ResultRow {
   /** P9.7: iTunes id when the row came from the iTunes picker. */
   itunesId?: number;
   durationMs?: number;
+  /** P12 covers: local cover path or iTunes artwork URL (or neither). */
+  coverPath?: string | null;
+  artworkUrl?: string;
 }
 
 export interface ResultGroup {
@@ -44,6 +48,7 @@ export function buildGroups(input: GroupInput): ResultGroup[] {
     sub: [t.artist, t.album].filter(Boolean).join(" · ") || undefined,
     right: formatDuration(t.durationMs),
     trackId: t.id,
+    coverPath: t.coverPath,
   }));
   if (local.length > 0) groups.push({ label: "In your library", rows: local });
 
@@ -55,6 +60,7 @@ export function buildGroups(input: GroupInput): ResultGroup[] {
     mbid: r.mbid,
     itunesId: r.itunesId,
     durationMs: r.durationMs,
+    artworkUrl: r.artworkUrl,
   }));
   if (trackRows.length > 0) groups.push({ label: input.trackLabel, rows: trackRows });
 
@@ -89,6 +95,8 @@ interface Props {
   /** P9.7/P9.8: "+ Add" on online track rows; the button element anchors
       the playlist menu (portal — the dialog clips absolute children). */
   onAdd?: (row: ResultRow, button: HTMLElement) => void;
+  /** P12: "⭳ Download" on online track rows (pin to the disk cache). */
+  onDownload?: (row: ResultRow) => void;
 }
 
 export function SearchResultsList({
@@ -99,6 +107,7 @@ export function SearchResultsList({
   onHover,
   onPick,
   onAdd,
+  onDownload,
 }: Props) {
   let offset = 0;
   return (
@@ -124,6 +133,7 @@ export function SearchResultsList({
                       index === activeIndex ? "bg-glass" : ""
                     }`}
                   >
+                    <CoverArt track={row} size={32} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-14 text-ink-1">{row.title}</p>
                       {row.sub && (
@@ -140,17 +150,30 @@ export function SearchResultsList({
                       )
                     )}
                     {isOnlineTrack && (
-                      <button
-                        type="button"
-                        aria-label={`Add “${row.title}” to a playlist`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onAdd?.(row, e.currentTarget);
-                        }}
-                        className="rounded-6 px-1.5 py-0.5 text-14 text-ink-3 transition hover:bg-glass hover:text-ink-1"
-                      >
-                        +
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          aria-label={`Download “${row.title}”`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDownload?.(row);
+                          }}
+                          className="rounded-6 px-1.5 py-0.5 text-14 text-ink-3 transition hover:bg-glass hover:text-ink-1"
+                        >
+                          ⭳
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Add “${row.title}” to a playlist`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAdd?.(row, e.currentTarget);
+                          }}
+                          className="rounded-6 px-1.5 py-0.5 text-14 text-ink-3 transition hover:bg-glass hover:text-ink-1"
+                        >
+                          +
+                        </button>
+                      </>
                     )}
                   </li>
                 );

@@ -62,7 +62,7 @@ function current(): Track | null {
 }
 
 /** Republish on track change and whenever the library rows reload
-    (scan/enrich refresh `tracks`, which can newly carry palette data).
+    (scan refresh `tracks`, which can newly carry palette data).
     Returns cleanup. */
 export function initPaletteWiring(): () => void {
   let lastId = usePlayerStore.getState().currentTrackId;

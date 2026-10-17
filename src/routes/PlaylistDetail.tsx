@@ -11,6 +11,8 @@ import {
 } from "@/lib/playlistApi";
 import { AddTracks } from "@/components/playlists/AddTracks";
 import { DragTrackList } from "@/components/playlists/DragTrackList";
+import { downloadTracks, refreshCachedIds } from "@/lib/downloadApi";
+import { useDownloadStore } from "@/store/downloadStore";
 import { usePlayerStore } from "@/store/playerStore";
 import { useUiStore } from "@/store/uiStore";
 import type { PlaylistDetail } from "@/lib/types";
@@ -24,11 +26,13 @@ export default function PlaylistDetailPage() {
   const [detail, setDetail] = useState<PlaylistDetail | null>(null);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const cachedIds = useDownloadStore((s) => s.cachedIds);
 
   const refresh = useCallback(async () => {
     const next = await getPlaylist(id);
     setDetail(next);
     setName(next?.name ?? "");
+    if (next) void refreshCachedIds(next.tracks.map((t) => t.id));
   }, [id]);
 
   useEffect(() => {
@@ -94,6 +98,20 @@ export default function PlaylistDetailPage() {
     }
   }
 
+  /** P12: sequential pinned download of every stream member. */
+  async function downloadAll() {
+    if (!detail) return;
+    const streams = detail.tracks.filter((t) => t.source === "stream");
+    if (streams.length === 0) {
+      pushToast({ message: "No stream tracks to download", tone: "info" });
+      return;
+    }
+    pushToast({ message: `Downloading ${streams.length} track(s)…`, tone: "info" });
+    const done = await downloadTracks(streams.map((t) => t.id));
+    pushToast({ message: `Downloaded ${done}/${streams.length} track(s)`, tone: "info" });
+    await refresh();
+  }
+
   if (!detail) {
     return (
       <section className="page">
@@ -121,6 +139,13 @@ export default function PlaylistDetailPage() {
           />
         </div>
         <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => void downloadAll()}
+            className="rounded-ctrl border border-stroke px-4 py-2 text-14 text-ink-2 transition hover:bg-glass"
+          >
+            Download playlist
+          </button>
           <button
             type="button"
             onClick={() => void remove()}
@@ -152,6 +177,7 @@ export default function PlaylistDetailPage() {
             onReorder={(ids) => void reorder(ids)}
             onRemove={(trackId) => void removeTrack(trackId)}
             onPlay={play}
+            cachedIds={cachedIds}
           />
         </div>
       )}

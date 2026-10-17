@@ -13,6 +13,8 @@ export interface ItunesTrack {
   artist: string;
   album?: string | null;
   durationMs?: number | null;
+  /** 100×100 artwork URL from the iTunes response (P12 covers). */
+  artworkUrl?: string | null;
 }
 
 /** Relevance-ordered iTunes rows (cache-first, ~400 ms spacing Rust-side). */

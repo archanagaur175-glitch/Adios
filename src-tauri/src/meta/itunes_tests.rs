@@ -11,7 +11,8 @@ use crate::resolver::BoxFuture;
 const PAGE: &str = r#"{"resultCount":3,"results":[
   {"trackName":"Never Gonna Give You Up","artistName":"Rick Astley",
    "collectionName":"Whenever You Need Somebody","trackTimeMillis":213573,
-   "trackId":1438132740},
+   "trackId":1438132740,
+   "artworkUrl100":"https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/art/1438132740/100x100bb.jpg"},
   {"trackName":"Never Gonna Give You Up (2022 Remaster)","artistName":"Rick Astley",
    "collectionName":"Whenever You Need Somebody (2022 Remaster)",
    "trackTimeMillis":213560,"trackId":1700000001},
@@ -64,7 +65,13 @@ fn parse_keeps_relevance_order_and_maps_fields() {
     assert_eq!(rows[0].artist, "Rick Astley");
     assert_eq!(rows[0].album.as_deref(), Some("Whenever You Need Somebody"));
     assert_eq!(rows[0].duration_ms, Some(213573));
+    assert_eq!(
+        rows[0].artwork_url.as_deref(),
+        Some("https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/art/1438132740/100x100bb.jpg"),
+        "P12: artworkUrl100 plumbed through"
+    );
     assert_eq!(rows[1].itunes_id, 1700000001, "relevance order preserved");
+    assert_eq!(rows[1].artwork_url, None, "missing artwork stays None");
 }
 
 #[test]

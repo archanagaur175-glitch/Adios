@@ -1,5 +1,5 @@
 pub mod cover;
-pub mod enrich;
+pub mod download;
 pub mod history;
 pub mod library;
 pub mod lyrics;

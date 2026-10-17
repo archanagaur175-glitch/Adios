@@ -12,6 +12,8 @@ export interface OnlineResult {
   durationMs?: number;
   /** P9.7: iTunes hits carry their own id (relevance order from Apple). */
   itunesId?: number;
+  /** P12: iTunes 100×100 artwork URL (MB rows have none). */
+  artworkUrl?: string;
 }
 
 interface SearchState {

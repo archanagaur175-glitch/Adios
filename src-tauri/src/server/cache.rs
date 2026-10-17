@@ -27,7 +27,8 @@ pub fn cache_index_get(conn: &Connection, url: &str) -> Option<CacheRow> {
     .flatten()
 }
 
-/// Record a completed cache download (upsert on url).
+/// Record a completed cache download (upsert on url). Does NOT touch
+/// `pinned` — a re-download never un-pins an existing row (P12).
 pub fn cache_index_put(
     conn: &Connection,
     url: &str,
@@ -44,6 +45,11 @@ pub fn cache_index_put(
         params![url, local_path, mime, bytes as i64],
     )?;
     Ok(())
+}
+
+/// P12: mark a row pinned (survives LRU eviction). Idempotent.
+pub fn cache_index_pin(conn: &Connection, url: &str) -> rusqlite::Result<usize> {
+    conn.execute("UPDATE cache_index SET pinned = 1 WHERE url = ?1", [url])
 }
 
 /// Bump `hit_count` + `last_access` after serving from cache.

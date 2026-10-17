@@ -160,7 +160,6 @@ pub fn run() {
             commands::search::search_local,
             commands::library::add_stream_track,
             commands::cover::fetch_cover,
-            commands::enrich::enrich_tracks,
             commands::lyrics::get_lyrics,
             commands::playlists::playlist_create,
             commands::playlists::playlist_rename,
@@ -176,7 +175,9 @@ pub fn run() {
             commands::session::session_load_queue,
             commands::session::list_cached_tracks,
             commands::history::record_play,
-            commands::history::list_play_history
+            commands::history::list_play_history,
+            commands::download::download_track,
+            commands::session::cached_track_ids
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -33,3 +33,21 @@ pub fn list_cached_tracks(db: State<DbState>) -> Result<Vec<TrackRow>, String> {
     let conn = db.0.lock().map_err(lock_err)?;
     session::cached_tracks(&conn).map_err(|e| e.to_string())
 }
+
+/// P12: batch "is this stream track on disk" check for FE download badges.
+#[tauri::command]
+pub fn cached_track_ids(db: State<DbState>, track_ids: Vec<i64>) -> Result<Vec<i64>, String> {
+    if track_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    let conn = db.0.lock().map_err(lock_err)?;
+    let placeholders = track_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+    let sql = format!(
+        "SELECT t.id FROM tracks t JOIN cache_index c ON c.url = t.url WHERE t.id IN ({placeholders})"
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map(rusqlite::params_from_iter(track_ids.iter()), |r| r.get(0))
+        .map_err(|e| e.to_string())?;
+    rows.collect::<rusqlite::Result<Vec<i64>>>().map_err(|e| e.to_string())
+}

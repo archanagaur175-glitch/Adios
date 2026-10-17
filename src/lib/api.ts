@@ -144,26 +144,6 @@ export async function scanFolder(folder: string): Promise<ScanSummary | null> {
   return invoke<ScanSummary>("scan_folder", { folder });
 }
 
-// ---------- Enrichment (P5.4) ----------
-
-/** Result of one enrichment batch (≤ 50 rows — loop while `processed` is full). */
-export interface EnrichSummary {
-  matched: number;
-  noMatch: number;
-  failed: number;
-  covers: number;
-  elapsedMs: number;
-}
-
-/**
- * Backfill MusicBrainz IDs + CAA covers for unmatched rows. One MB
- * queue slot per row; repeats are meta_cache-only.
- */
-export async function enrichTracks(): Promise<EnrichSummary> {
-  if (!inTauri) return { matched: 0, noMatch: 0, failed: 0, covers: 0, elapsedMs: 0 };
-  return invoke<EnrichSummary>("enrich_tracks");
-}
-
 // ---------- Search (P5.3) ----------
 
 /** Instant local FTS5 search (≤ 50 rows); empty input short-circuits. */

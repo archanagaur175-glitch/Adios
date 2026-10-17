@@ -28,7 +28,7 @@ const specCache = new Map<string, Candidate>();
 const inflight = new Map<string, Promise<Candidate | null>>();
 
 /** Resolve through the chain, reusing a primed or in-flight result. */
-async function resolveOnlinePick(pick: OnlinePick): Promise<Candidate | null> {
+export async function resolveOnlinePick(pick: OnlinePick): Promise<Candidate | null> {
   const key = pickKey(pick);
   const primed = specCache.get(key);
   if (primed) {
@@ -68,7 +68,7 @@ export function primeOnlinePick(pick: OnlinePick): void {
 
 /** Persist the resolved candidate as a DB row and merge it into the
     in-memory library so the engine/player can resolve the id. */
-async function persistPick(pick: OnlinePick, candidate: Candidate): Promise<Track> {
+export async function persistPick(pick: OnlinePick, candidate: Candidate): Promise<Track> {
   const row = await addStreamTrack({
     url: candidate.urlOrPath,
     artist: pick.artist ?? "",

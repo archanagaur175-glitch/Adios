@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
+import { CoverArt } from "@/components/common/CoverArt";
 import { formatDuration } from "@/lib/format";
 import type { Track } from "@/lib/types";
 
@@ -12,6 +13,8 @@ interface Props {
   onReorder: (trackIds: number[]) => void;
   onRemove: (trackId: number) => void;
   onPlay: (trackId: number) => void;
+  /** P12: track ids confirmed on disk — rows show "Downloaded ✓". */
+  cachedIds?: Record<number, true>;
 }
 
 function move<T>(items: T[], from: number, to: number): T[] {
@@ -23,7 +26,7 @@ function move<T>(items: T[], from: number, to: number): T[] {
 
 /** Pointer-drag reorder list (P8.2): window listeners (no pointer capture,
     so synthetic CDP events work too); the order commits on pointerup. */
-export function DragTrackList({ tracks, onReorder, onRemove, onPlay }: Props) {
+export function DragTrackList({ tracks, onReorder, onRemove, onPlay, cachedIds }: Props) {
   const [order, setOrder] = useState<Track[]>(tracks);
   const [drag, setDrag] = useState<
     { from: number; startY: number; snapshot: Track[] } | null
@@ -97,7 +100,7 @@ export function DragTrackList({ tracks, onReorder, onRemove, onPlay }: Props) {
       {order.map((track, index) => (
         <li
           key={track.id}
-          className={`grid h-12 grid-cols-[auto_1fr_auto_auto] items-center gap-3 rounded-card px-3 transition hover:bg-glass ${
+          className={`grid h-12 grid-cols-[auto_auto_1fr_auto_auto] items-center gap-3 rounded-card px-3 transition hover:bg-glass ${
             drag?.snapshot[drag.from]?.id === track.id || grabbed === index
               ? "cursor-grab bg-glass opacity-60"
               : "cursor-grab"
@@ -121,6 +124,7 @@ export function DragTrackList({ tracks, onReorder, onRemove, onPlay }: Props) {
           >
             ⠿
           </button>
+          <CoverArt track={track} size={36} />
           <button
             type="button"
             onClick={() => onPlay(track.id)}
@@ -129,7 +133,7 @@ export function DragTrackList({ tracks, onReorder, onRemove, onPlay }: Props) {
             {track.artist} — {track.title}
           </button>
           <span className="text-12 tabular text-ink-3">
-            {formatDuration(track.durationMs)}
+            {track.source === "stream" && cachedIds?.[track.id] ? "Downloaded ✓" : formatDuration(track.durationMs)}
           </span>
           <button
             type="button"

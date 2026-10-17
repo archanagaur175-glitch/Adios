@@ -2,6 +2,7 @@
 import { inTauri } from "@/lib/api";
 import { listCachedTracks } from "@/lib/sessionApi";
 import { formatDuration } from "@/lib/format";
+import { CoverArt } from "@/components/common/CoverArt";
 import { usePlayerStore } from "@/store/playerStore";
 import type { Track } from "@/lib/types";
 
@@ -57,8 +58,9 @@ export default function CachedPage() {
               }}
               tabIndex={0}
               role="button"
-              className="grid cursor-pointer grid-cols-[1fr_auto] items-center gap-3 rounded-card px-3 py-2 transition hover:bg-glass focus-visible:bg-glass"
+              className="grid cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-3 rounded-card px-3 py-2 transition hover:bg-glass focus-visible:bg-glass"
             >
+              <CoverArt track={track} size={36} />
               <div className="min-w-0">
                 <p className="truncate text-14 text-ink-1">
                   {track.artist} — {track.title}

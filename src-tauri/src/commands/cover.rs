@@ -1,5 +1,6 @@
 //! Cover fetch command (P5.2): thin wrapper over `meta::cover_store` (the
-//! shared persistence path also driven by import enrichment, P5.4).
+//! shared cover persistence path; import enrichment, removed in P12, used
+//! to drive the same code).
 
 use tauri::{AppHandle, Manager, State};
 

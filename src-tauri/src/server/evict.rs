@@ -83,6 +83,8 @@ pub fn evict_to_cap(
     if over > 0 {
         // Victim order = evict order; a row goes while the strictly older rows
         // alone still leave the cache over the cap (keeps the newest prefix).
+        // P12: pinned rows are never victims — a user download survives the
+        // cap (remaining_bytes may exceed it until a pin is removed).
         let victims: Vec<(String, String, i64)> = {
             let mut stmt = conn.prepare(
                 "WITH ordered AS (
@@ -91,6 +93,7 @@ pub fn evict_to_cap(
                             ORDER BY last_access ASC, hit_count ASC, url ASC
                           ) - bytes AS older_bytes
                    FROM cache_index
+                   WHERE pinned = 0
                  )
                  SELECT url, local_path, bytes FROM ordered
                  WHERE older_bytes < ?1 ORDER BY older_bytes ASC",

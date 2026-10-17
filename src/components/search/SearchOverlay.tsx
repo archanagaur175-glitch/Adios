@@ -11,6 +11,7 @@ import {
   playOnlinePick,
   primeOnlinePick,
 } from "@/lib/onlinePlay";
+import { downloadOnlinePick } from "@/lib/downloadApi";
 import { usePlayerStore } from "@/store/playerStore";
 import { useUiStore } from "@/store/uiStore";
 import { useSearchStore } from "@/store/searchStore";
@@ -101,8 +102,16 @@ export function SearchOverlay() {
       return;
     }
     useUiStore.getState().pushToast({
-      message: "Album/artist matching ships with import enrichment (P5.4)",
+      message: "Album/artist rows can't play yet — pick a track instead",
       tone: "info",
+    });
+  }
+
+  /** P12: ⭳ on an online row — resolve → persist stream row → pinned download. */
+  function download(row: ResultRow) {
+    if (!row.mbid) return;
+    void downloadOnlinePick(rowPick(row)).then((ok) => {
+      if (ok) useUiStore.getState().pushToast({ message: `Downloaded “${row.title}”`, tone: "info" });
     });
   }
 
@@ -170,6 +179,7 @@ export function SearchOverlay() {
             onHover={(i) => useSearchStore.getState().setActiveIndex(i)}
             onPick={pick}
             onAdd={openMenu}
+            onDownload={download}
           />
         </div>
         {menu && (

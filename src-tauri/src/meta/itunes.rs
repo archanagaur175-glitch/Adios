@@ -28,6 +28,10 @@ struct ItEntry {
     duration_ms: Option<i64>,
     #[serde(rename = "trackId")]
     track_id: i64,
+    /// 100×100 px artwork URL (P12 covers). The 60px variant is derivable
+    /// by swapping `100x100` → `60x60` when a smaller thumb is wanted.
+    #[serde(rename = "artworkUrl100")]
+    artwork_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -45,6 +49,7 @@ pub struct ItunesTrackOut {
     pub artist: String,
     pub album: Option<String>,
     pub duration_ms: Option<i64>,
+    pub artwork_url: Option<String>,
 }
 
 /// Normalized cache key: `itunes|<query>` → FNV-1a hex (MB-style).
@@ -129,6 +134,7 @@ pub fn parse_and_rank(body: &str) -> Result<Vec<ItunesTrackOut>, String> {
             artist: t.artist,
             album: t.album,
             duration_ms: t.duration_ms,
+            artwork_url: t.artwork_url,
         })
         .collect())
 }

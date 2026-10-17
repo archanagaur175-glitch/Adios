@@ -17,4 +17,9 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "002_lyrics_cache",
         sql: include_str!("m002_lyrics_cache.sql"),
     },
+    Migration {
+        version: 3,
+        name: "003_download_pins",
+        sql: include_str!("m003_download_pins.sql"),
+    },
 ];

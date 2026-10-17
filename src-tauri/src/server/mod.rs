@@ -10,6 +10,8 @@ pub mod tee;
 #[cfg(test)]
 mod evict_tests;
 #[cfg(test)]
+mod pin_tests;
+#[cfg(test)]
 mod proxy_tests;
 #[cfg(test)]
 mod reresolve_tests;

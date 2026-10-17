@@ -1,7 +1,7 @@
 ﻿import { useCallback, useEffect, useState } from "react";
 import { LibraryTabs, type LibraryTab } from "@/components/library/LibraryTabs";
 import { TrackList } from "@/components/library/TrackList";
-import { useScanEnrich } from "@/components/library/useScanEnrich";
+import { useScan } from "@/components/library/useScan";
 import { inTauri } from "@/lib/api";
 import { formatDuration } from "@/lib/format";
 import { listPlayHistory } from "@/lib/historyApi";
@@ -9,15 +9,14 @@ import { useLibraryStore } from "@/store/libraryStore";
 import { usePlayerStore } from "@/store/playerStore";
 import type { Track } from "@/lib/types";
 
-/** P10: Library = Downloads (local files) + History (all plays, most
-    recent first). Scan/Enrich act on the local library, so they live on
-    the Downloads tab only. */
+/** P11/P12: Library = Downloads (local files) + History (all plays, most
+    recent first). Scan lives on the Downloads tab; import enrichment was
+    removed in P12. */
 export default function LibraryPage() {
   const tracks = useLibraryStore((s) => s.tracks);
   const [tab, setTab] = useState<LibraryTab>("downloads");
   const [history, setHistory] = useState<Track[]>([]);
-  const { summary, enrichNote, scanning, enriching, error, refresh, runEnrich, handleScan } =
-    useScanEnrich();
+  const { summary, scanning, error, refresh, handleScan } = useScan();
 
   useEffect(() => {
     void refresh();
@@ -55,19 +54,11 @@ export default function LibraryPage() {
           <div className="flex items-center justify-end gap-2">
             <button
               type="button"
-              onClick={() => void runEnrich()}
-              disabled={scanning || enriching || !inTauri || downloads.length === 0}
-              className="rounded-ctrl border border-stroke px-4 py-2 text-14 text-ink-2 transition hover:bg-glass disabled:opacity-50"
-            >
-              {enriching ? "Enriching…" : "Enrich"}
-            </button>
-            <button
-              type="button"
               onClick={() => void handleScan()}
-              disabled={scanning || enriching || !inTauri}
+              disabled={scanning || !inTauri}
               className="rounded-ctrl bg-accent px-4 py-2 text-14 font-medium text-[color:var(--on-accent)] transition hover:opacity-90 disabled:opacity-50"
             >
-              {scanning ? "Scanning…" : enriching ? "Enriching…" : "Scan folder"}
+              {scanning ? "Scanning…" : "Scan folder"}
             </button>
           </div>
 
@@ -77,14 +68,6 @@ export default function LibraryPage() {
             <p className="text-ink-3 text-14 tabular">
               Added {summary.added} · skipped {summary.skipped} · failed{" "}
               {summary.failed} · {summary.elapsedMs} ms — {summary.folder}
-            </p>
-          )}
-
-          {enrichNote && (
-            <p className="text-ink-3 text-14 tabular">
-              Enriched: matched {enrichNote.matched} · covers {enrichNote.covers} ·
-              no match {enrichNote.noMatch} · failed {enrichNote.failed} ·{" "}
-              {enrichNote.elapsedMs} ms
             </p>
           )}
 

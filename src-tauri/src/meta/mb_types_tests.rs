@@ -3,7 +3,7 @@
 //! recording, release — verified 2026-10-15).
 
 use crate::meta::mb_parse::parse_list;
-use crate::meta::mb_types::{credit_names, MbArtist, MbRecording, MbRelease, SearchKind};
+use crate::meta::mb_types::{MbArtist, MbRecording, MbRelease, SearchKind};
 
 const ARTIST_JSON: &str = r#"{
   "created": "2017-03-12T16:54:57.165Z",
@@ -97,7 +97,13 @@ fn recording_list_parses_doc_shape() {
     assert_eq!(rec.id, "026fa041-3917-4c73-9079-ed16e36f20f8");
     assert_eq!(rec.title, "Blow Your Mind (Mwah)");
     assert_eq!(rec.length, Some(178_000), "MB length is milliseconds");
-    assert_eq!(rec.artists(), vec!["Dua Lipa".to_owned()]);
+    let names: Vec<String> = rec
+        .artist_credit
+        .iter()
+        .flatten()
+        .filter_map(|c| c.artist.as_ref().map(|a| a.name.clone()))
+        .collect();
+    assert_eq!(names, vec!["Dua Lipa".to_owned()]);
     assert_eq!(rec.first_release_date.as_deref(), Some("2016-08-26"));
     assert_eq!(rec.score, Some(100));
 }
@@ -107,10 +113,13 @@ fn release_list_parses_doc_shape() {
     let page = parse_list::<MbRelease>(SearchKind::Release.list_key(), RELEASE_JSON).unwrap();
     let rel = &page.items[0];
     assert_eq!(rel.title, "Fred Schneider & The Shake Society");
-    assert_eq!(
-        credit_names(&rel.artist_credit),
-        vec!["Fred Schneider".to_owned()]
-    );
+    let names: Vec<String> = rel
+        .artist_credit
+        .iter()
+        .flatten()
+        .filter_map(|c| c.artist.as_ref().map(|a| a.name.clone()))
+        .collect();
+    assert_eq!(names, vec!["Fred Schneider".to_owned()]);
     assert_eq!(rel.date.as_deref(), Some("1987"));
     assert_eq!(rel.status.as_deref(), Some("Official"));
     assert_eq!(rel.score, Some(100));
