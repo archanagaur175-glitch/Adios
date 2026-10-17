@@ -20,6 +20,7 @@ pub struct FileMeta {
     pub year: Option<i64>,
     pub track_no: Option<i64>,
     pub disc_no: Option<i64>,
+    pub genre: Option<String>,
     pub file_size: i64,
     pub mtime: Option<i64>,
     pub cover: Option<CoverArt>,
@@ -46,7 +47,7 @@ pub fn read_meta(path: &Path) -> Result<FileMeta, String> {
             .unwrap_or_else(|| "Unknown".to_owned())
     };
 
-    let (title, artist, album, year, track_no, disc_no) = match tag {
+    let (title, artist, album, year, track_no, disc_no, genre) = match tag {
         Some(t) => (
             t.title().map(|v| v.into_owned()).unwrap_or_else(|| stem(path)),
             t.artist()
@@ -56,8 +57,9 @@ pub fn read_meta(path: &Path) -> Result<FileMeta, String> {
             t.date().map(|d| i64::from(d.year)),
             t.track().map(i64::from),
             t.disk().map(i64::from),
+            t.genre().map(|v| v.into_owned()),
         ),
-        None => (stem(path), "Unknown Artist".to_owned(), None, None, None, None),
+        None => (stem(path), "Unknown Artist".to_owned(), None, None, None, None, None),
     };
 
     Ok(FileMeta {
@@ -68,6 +70,7 @@ pub fn read_meta(path: &Path) -> Result<FileMeta, String> {
         year,
         track_no,
         disc_no,
+        genre,
         file_size,
         mtime,
         cover: tag.and_then(pick_cover),

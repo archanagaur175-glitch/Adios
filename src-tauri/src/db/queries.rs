@@ -65,11 +65,14 @@ pub struct TrackRow {
     pub added_at: String,
     pub play_count: i64,
     pub last_played_at: Option<String>,
+    /// Freeform tag/iTunes genre (P16 taste shelves); NULL on old rows until
+    /// the next scan backfills it.
+    pub genre: Option<String>,
 }
 
 pub(super) const TRACK_COLUMNS: &str = "id, source, path, url, artist, title, album, duration_ms,
     year, track_no, disc_no, cover_path, accent, accent2, dominant_colors_json,
-    mb_recording_id, mb_release_id, added_at, play_count, last_played_at";
+    mb_recording_id, mb_release_id, added_at, play_count, last_played_at, genre";
 
 pub(super) fn row_to_track(row: &rusqlite::Row<'_>) -> Result<TrackRow> {
     Ok(TrackRow {
@@ -93,6 +96,7 @@ pub(super) fn row_to_track(row: &rusqlite::Row<'_>) -> Result<TrackRow> {
         added_at: row.get(17)?,
         play_count: row.get(18)?,
         last_played_at: row.get(19)?,
+        genre: row.get(20)?,
     })
 }
 
@@ -130,6 +134,17 @@ pub fn track_exists(conn: &Connection, path: &str) -> Result<bool> {
     let mut stmt = conn.prepare("SELECT 1 FROM tracks WHERE path = ?1")?;
     let mut rows = stmt.query_map([path], |_| Ok(()))?;
     Ok(rows.next().is_some())
+}
+
+/// P16: backfill a scanned tag genre — only fills a row that has none yet
+/// (`track_insert` is ON CONFLICT DO NOTHING, so rescans never touch old rows;
+/// this is how genre arrives on files imported before migration 004).
+pub fn track_set_genre(conn: &Connection, path: &str, genre: &str) -> Result<usize> {
+    conn.execute(
+        "UPDATE tracks SET genre = ?2
+         WHERE path = ?1 AND (genre IS NULL OR genre = '')",
+        params![path, genre],
+    )
 }
 
 /// Set the cover file path for a track (written by the folder scan / CAA fetch).

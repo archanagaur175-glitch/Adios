@@ -39,6 +39,7 @@ fn seed_track(db: &crate::resolver::SharedDb) -> i64 {
         "Title",
         Some(180_000),
         Some("itunes:42"),
+        Some("Pop"),
     )
     .expect("upsert")
     .id

@@ -22,4 +22,9 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "003_download_pins",
         sql: include_str!("m003_download_pins.sql"),
     },
+    Migration {
+        version: 4,
+        name: "004_genre",
+        sql: include_str!("m004_genre.sql"),
+    },
 ];

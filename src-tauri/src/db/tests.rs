@@ -60,7 +60,12 @@ fn version_mismatch_skips_reapplied_migration() {
     conn.execute_batch(SCHEMA_VERSION_TABLE).unwrap();
     // Fake EVERY migration as applied without its tables — this test is
     // about version-gating, not SQL validity (002 ALTERs a table 001 made).
-    for (version, name) in [(1i64, "001_init"), (2i64, "002_lyrics_cache"), (3i64, "003_download_pins")] {
+    for (version, name) in [
+        (1i64, "001_init"),
+        (2i64, "002_lyrics_cache"),
+        (3i64, "003_download_pins"),
+        (4i64, "004_genre"),
+    ] {
         conn.execute(
             "INSERT INTO schema_migrations (version, name) VALUES (?1, ?2)",
             rusqlite::params![version, name],

@@ -23,6 +23,8 @@ export interface ResultRow {
   /** P12 covers: local cover path or iTunes artwork URL (or neither). */
   coverPath?: string | null;
   artworkUrl?: string;
+  /** P16: iTunes primaryGenreName (online rows only). */
+  genre?: string;
 }
 
 export interface ResultGroup {
@@ -61,6 +63,7 @@ export function buildGroups(input: GroupInput): ResultGroup[] {
     itunesId: r.itunesId,
     durationMs: r.durationMs,
     artworkUrl: r.artworkUrl,
+    genre: r.genre,
   }));
   if (trackRows.length > 0) groups.push({ label: input.trackLabel, rows: trackRows });
 

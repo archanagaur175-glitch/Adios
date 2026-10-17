@@ -11,6 +11,8 @@ pub mod stream;
 #[cfg(test)]
 mod fts_tests;
 #[cfg(test)]
+mod genre_tests;
+#[cfg(test)]
 mod playlist_tests;
 #[cfg(test)]
 mod session_tests;

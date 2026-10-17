@@ -12,7 +12,8 @@ const PAGE: &str = r#"{"resultCount":3,"results":[
   {"trackName":"Never Gonna Give You Up","artistName":"Rick Astley",
    "collectionName":"Whenever You Need Somebody","trackTimeMillis":213573,
    "trackId":1438132740,
-   "artworkUrl100":"https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/art/1438132740/100x100bb.jpg"},
+   "artworkUrl100":"https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/art/1438132740/100x100bb.jpg",
+   "primaryGenreName":"Pop","releaseDate":"2016-07-01T12:00:00-07:00"},
   {"trackName":"Never Gonna Give You Up (2022 Remaster)","artistName":"Rick Astley",
    "collectionName":"Whenever You Need Somebody (2022 Remaster)",
    "trackTimeMillis":213560,"trackId":1700000001},
@@ -72,6 +73,13 @@ fn parse_keeps_relevance_order_and_maps_fields() {
     );
     assert_eq!(rows[1].itunes_id, 1700000001, "relevance order preserved");
     assert_eq!(rows[1].artwork_url, None, "missing artwork stays None");
+    assert_eq!(rows[0].genre.as_deref(), Some("Pop"), "P16: primaryGenreName");
+    assert_eq!(
+        rows[0].release_date.as_deref(),
+        Some("2016-07-01T12:00:00-07:00"),
+        "P16: releaseDate carried"
+    );
+    assert_eq!(rows[2].genre, None, "missing genre stays None");
 }
 
 #[test]

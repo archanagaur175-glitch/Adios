@@ -16,6 +16,8 @@ export interface Track {
   year?: number | null;
   trackNo?: number | null;
   discNo?: number | null;
+  /** Tag/iTunes genre (P16 taste shelves); null on rows from before m004. */
+  genre?: string | null;
   coverPath?: string | null;
   /** Dynamic accent colors extracted from cover art (hex). */
   accent?: string | null;

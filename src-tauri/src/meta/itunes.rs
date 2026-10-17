@@ -32,6 +32,12 @@ struct ItEntry {
     /// by swapping `100x100` → `60x60` when a smaller thumb is wanted.
     #[serde(rename = "artworkUrl100")]
     artwork_url: Option<String>,
+    /// P16 taste shelves: Apple's broad genre bucket (e.g. "Electronic").
+    #[serde(rename = "primaryGenreName")]
+    genre: Option<String>,
+    /// P16 discover: ISO-8601 release stamp, carried for freshness checks.
+    #[serde(rename = "releaseDate")]
+    release_date: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -50,6 +56,8 @@ pub struct ItunesTrackOut {
     pub album: Option<String>,
     pub duration_ms: Option<i64>,
     pub artwork_url: Option<String>,
+    pub genre: Option<String>,
+    pub release_date: Option<String>,
 }
 
 /// Normalized cache key: `itunes|<query>` → FNV-1a hex (MB-style).
@@ -135,6 +143,8 @@ pub fn parse_and_rank(body: &str) -> Result<Vec<ItunesTrackOut>, String> {
             album: t.album,
             duration_ms: t.duration_ms,
             artwork_url: t.artwork_url,
+            genre: t.genre,
+            release_date: t.release_date,
         })
         .collect())
 }

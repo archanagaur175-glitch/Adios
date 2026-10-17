@@ -1,13 +1,14 @@
 ﻿import { useEffect, useMemo } from "react";
-import { formatDuration } from "@/lib/format";
 import { CoverArt } from "@/components/common/CoverArt";
+import { TrackShelf } from "@/components/home/TrackShelf";
+import { TasteShelves } from "@/components/home/TasteShelves";
 import { useLibraryStore } from "@/store/libraryStore";
 import { usePlaylistStore } from "@/store/playlistStore";
 import { usePlayerStore } from "@/store/playerStore";
 
-/** Home (P9.6 fix #4 — was a placeholder): resume the queue, jump back
-    into recently added tracks, shuffle the library. All data comes from
-    stores already hydrated at boot; no extra commands. */
+/** Home: resume the queue, taste shelves from play history (P16-C), jump
+    back into recently added, shuffle the library. Stores are hydrated at
+    boot; the P16 online sections (A/B/D) mount below as they land. */
 
 export default function HomePage() {
   const tracks = useLibraryStore((s) => s.tracks);
@@ -32,11 +33,6 @@ export default function HomePage() {
         .slice(0, 6),
     [tracks],
   );
-
-  function playFrom(id: number) {
-    const ids = recent.map((t) => t.id);
-    usePlayerStore.getState().playQueue(ids, ids.indexOf(id));
-  }
 
   function shuffleAll() {
     if (tracks.length === 0) return;
@@ -100,40 +96,9 @@ export default function HomePage() {
         </div>
       )}
 
-      {recent.length > 0 && (
-        <div>
-          <h2 className="mb-2 text-11 font-medium uppercase tracking-wide text-ink-3">
-            Recently added
-          </h2>
-          <ul className="flex flex-col gap-1">
-            {recent.map((track) => (
-              <li
-                key={track.id}
-                onClick={() => playFrom(track.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") playFrom(track.id);
-                }}
-                tabIndex={0}
-                role="button"
-                className="grid cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-3 rounded-card px-3 py-2 transition hover:bg-glass focus-visible:bg-glass"
-              >
-                <CoverArt track={track} size={36} />
-                <div className="min-w-0">
-                  <p className="truncate text-14 text-ink-1">
-                    {track.artist} — {track.title}
-                  </p>
-                  {track.album && (
-                    <p className="truncate text-12 text-ink-3">{track.album}</p>
-                  )}
-                </div>
-                <span className="text-12 tabular text-ink-3">
-                  {formatDuration(track.durationMs)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <TasteShelves />
+
+      <TrackShelf title="Recently added" tracks={recent} />
 
       {tracks.length === 0 && (
         <p className="text-ink-3">

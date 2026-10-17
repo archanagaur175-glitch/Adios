@@ -46,6 +46,7 @@ pub async fn add_stream_track(
     duration_ms: Option<i64>,
     mb_recording_id: Option<String>,
     artwork_url: Option<String>,
+    genre: Option<String>,
 ) -> Result<TrackRow, String> {
     let row = {
         let conn = db.0.lock().map_err(lock_err)?;
@@ -56,6 +57,7 @@ pub async fn add_stream_track(
             title.trim(),
             duration_ms,
             mb_recording_id.as_deref(),
+            genre.as_deref().map(str::trim).filter(|g| !g.is_empty()),
         )
         .map_err(|e| e.to_string())?
     };

@@ -7,7 +7,7 @@ fn upsert(
     url: &str,
     mb: Option<&str>,
 ) -> crate::db::queries::TrackRow {
-    stream_track_upsert(conn, url, "Rick Astley", "Never Gonna Give You Up", Some(213_000), mb)
+    stream_track_upsert(conn, url, "Rick Astley", "Never Gonna Give You Up", Some(213_000), mb, None)
         .expect("upsert")
 }
 
@@ -53,4 +53,34 @@ fn stream_track_is_fts_searchable() {
         hits.iter().any(|t| t.source == "stream"),
         "insert triggers must index stream rows"
     );
+}
+
+#[test]
+fn genre_is_stored_and_kept_on_repick() {
+    let conn = crate::db::open_memory().expect("db");
+    let row = stream_track_upsert(
+        &conn,
+        "https://cdn/x.m4a",
+        "Rick Astley",
+        "Never Gonna Give You Up",
+        Some(213_000),
+        Some("itunes:99"),
+        Some("Pop"),
+    )
+    .expect("insert with genre");
+    assert_eq!(row.genre.as_deref(), Some("Pop"));
+
+    // Re-pick without a genre must not erase what the row already knows.
+    let refreshed = stream_track_upsert(
+        &conn,
+        "https://cdn/fresh.m4a",
+        "Rick Astley",
+        "Never Gonna Give You Up",
+        Some(213_000),
+        Some("itunes:99"),
+        None,
+    )
+    .expect("re-pick");
+    assert_eq!(refreshed.id, row.id);
+    assert_eq!(refreshed.genre.as_deref(), Some("Pop"), "COALESCE keeps genre");
 }

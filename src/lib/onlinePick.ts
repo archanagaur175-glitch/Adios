@@ -11,6 +11,8 @@ export interface OnlinePick {
   durationMs?: number;
   /** P13: iTunes artwork URL — persisted as the row's cover on add/play. */
   artworkUrl?: string;
+  /** P16: iTunes primaryGenreName — persisted on the stream row. */
+  genre?: string;
 }
 
 /** Stable cache key: iTunes id wins, then MB id, then metadata text. */
@@ -34,6 +36,7 @@ export function pickFromRow(row: {
   sub?: string;
   durationMs?: number;
   artworkUrl?: string;
+  genre?: string;
 }): OnlinePick {
   return {
     mbid: row.mbid,
@@ -42,5 +45,6 @@ export function pickFromRow(row: {
     artist: row.sub,
     durationMs: row.durationMs,
     artworkUrl: row.artworkUrl,
+    genre: row.genre,
   };
 }

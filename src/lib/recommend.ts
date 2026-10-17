@@ -7,6 +7,8 @@ export interface RecCandidate {
   artist: string;
   durationMs?: number | null;
   artworkUrl?: string | null;
+  /** P16: iTunes primaryGenreName — persisted when the pick needs a row. */
+  genre?: string | null;
 }
 
 /** How many recs to inject for a playlist of `trackCount` tracks:

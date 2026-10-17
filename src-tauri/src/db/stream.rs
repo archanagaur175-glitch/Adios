@@ -15,6 +15,7 @@ pub fn stream_track_upsert(
     title: &str,
     duration_ms: Option<i64>,
     mb_recording_id: Option<&str>,
+    genre: Option<&str>,
 ) -> rusqlite::Result<TrackRow> {
     if let Some(mid) = mb_recording_id {
         let existing: Option<i64> = conn
@@ -27,9 +28,9 @@ pub fn stream_track_upsert(
         if let Some(id) = existing {
             conn.execute(
                 "UPDATE tracks SET url = ?2, artist = ?3, title = ?4, duration_ms = ?5,
-                    updated_at = datetime('now')
+                    genre = COALESCE(?6, genre), updated_at = datetime('now')
                  WHERE id = ?1",
-                params![id, url, artist, title, duration_ms],
+                params![id, url, artist, title, duration_ms, genre],
             )?;
             return track_get(conn, id)?.ok_or_else(|| {
                 rusqlite::Error::QueryReturnedNoRows
@@ -37,9 +38,9 @@ pub fn stream_track_upsert(
         }
     }
     conn.execute(
-        "INSERT INTO tracks (source, path, url, artist, title, duration_ms, mb_recording_id)
-         VALUES ('stream', NULL, ?1, ?2, ?3, ?4, ?5)",
-        params![url, artist, title, duration_ms, mb_recording_id],
+        "INSERT INTO tracks (source, path, url, artist, title, duration_ms, mb_recording_id, genre)
+         VALUES ('stream', NULL, ?1, ?2, ?3, ?4, ?5, ?6)",
+        params![url, artist, title, duration_ms, mb_recording_id, genre],
     )?;
     let id = conn.last_insert_rowid();
     let sql = format!("SELECT {TRACK_COLUMNS} FROM tracks WHERE id = ?1");

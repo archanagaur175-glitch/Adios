@@ -15,6 +15,10 @@ export interface ItunesTrack {
   durationMs?: number | null;
   /** 100×100 artwork URL from the iTunes response (P12 covers). */
   artworkUrl?: string | null;
+  /** P16: Apple's primaryGenreName ("Pop", "Electronic", …). */
+  genre?: string | null;
+  /** P16: ISO-8601 release stamp from the search response. */
+  releaseDate?: string | null;
 }
 
 /** Relevance-ordered iTunes rows (cache-first, ~400 ms spacing Rust-side). */
@@ -33,6 +37,8 @@ export async function addStreamTrack(input: {
   durationMs?: number | null;
   mbRecordingId?: string | null;
   artworkUrl?: string | null;
+  /** P16: iTunes primaryGenreName persisted on the stream row. */
+  genre?: string | null;
 }): Promise<Track> {
   return invoke<Track>("add_stream_track", {
     url: input.url,
@@ -41,5 +47,6 @@ export async function addStreamTrack(input: {
     durationMs: input.durationMs ?? null,
     mbRecordingId: input.mbRecordingId ?? null,
     artworkUrl: input.artworkUrl ?? null,
+    genre: input.genre ?? null,
   });
 }

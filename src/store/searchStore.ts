@@ -14,6 +14,8 @@ export interface OnlineResult {
   itunesId?: number;
   /** P12: iTunes 100×100 artwork URL (MB rows have none). */
   artworkUrl?: string;
+  /** P16: iTunes primaryGenreName (MB rows have none). */
+  genre?: string;
 }
 
 interface SearchState {

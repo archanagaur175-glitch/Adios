@@ -79,6 +79,7 @@ function toPick(c: RecCandidate): OnlinePick {
     artist: c.artist,
     durationMs: c.durationMs ?? undefined,
     artworkUrl: c.artworkUrl ?? undefined,
+    genre: c.genre ?? undefined,
   };
 }
 

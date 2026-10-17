@@ -21,6 +21,8 @@ export interface OnlineTrackHit {
   durationMs?: number;
   /** iTunes 100×100 artwork (P12 covers); MB rows have none. */
   artworkUrl?: string;
+  /** P16: iTunes primaryGenreName; MB rows have none. */
+  genre?: string;
 }
 
 const creditNames = (
@@ -64,6 +66,7 @@ export async function fetchOnlineTracks(q: string): Promise<OnlineTrackHit[]> {
       album: d.album ?? undefined,
       durationMs: d.durationMs ?? undefined,
       artworkUrl: d.artworkUrl ?? undefined,
+      genre: d.genre ?? undefined,
     }));
     if (itunesRows.length > 0) return itunesRows;
   } catch (err) {

@@ -141,6 +141,11 @@ pub fn import_files(
                 }
             }
         }
+        // P16: `track_insert` never touches existing rows (ON CONFLICT DO
+        // NOTHING), so backfill genre separately — fills NULLs only, idempotent.
+        if let Some(genre) = meta.genre.as_deref().map(str::trim).filter(|g| !g.is_empty()) {
+            queries::track_set_genre(conn, &path_str, genre).ok();
+        }
     }
     summary.elapsed_ms = started.elapsed().as_millis() as u64;
     summary
