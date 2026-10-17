@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo } from "react";
 import { CoverArt } from "@/components/common/CoverArt";
+import { MoodGrid } from "@/components/home/MoodGrid";
 import { PickedForYou } from "@/components/home/PickedForYou";
 import { DiscoverNew } from "@/components/home/DiscoverNew";
 import { TrackShelf } from "@/components/home/TrackShelf";
@@ -8,9 +9,9 @@ import { useLibraryStore } from "@/store/libraryStore";
 import { usePlaylistStore } from "@/store/playlistStore";
 import { usePlayerStore } from "@/store/playerStore";
 
-/** Home: resume the queue, picked shelf (P16-A), taste shelves (P16-C),
-    recently added, Discover chart (P16-D), shuffle. Stores are hydrated at
-    boot; the P16 moods section (B) mounts below when it lands. */
+/** Home: resume the queue, Picked for you (P16-A), Moods (P16-B), taste
+    shelves (P16-C), recently added, Discover chart (P16-D), shuffle.
+    Stores are hydrated at boot. */
 
 export default function HomePage() {
   const tracks = useLibraryStore((s) => s.tracks);
@@ -99,6 +100,8 @@ export default function HomePage() {
       )}
 
       <PickedForYou />
+
+      <MoodGrid />
 
       <TasteShelves />
 

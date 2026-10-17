@@ -21,6 +21,7 @@ import HomePage from "@/routes/Home";
 import LibraryPage from "@/routes/Library";
 import PlaylistsPage from "@/routes/Playlists";
 import PlaylistDetailPage from "@/routes/PlaylistDetail";
+import MoodPage from "@/routes/MoodView";
 import SearchPage from "@/routes/Search";
 import CachedPage from "@/routes/Cached";
 import SettingsPage from "@/routes/Settings";
@@ -75,6 +76,7 @@ function App() {
           <Route path="library" element={<LibraryPage />} />
           <Route path="playlists" element={<PlaylistsPage />} />
           <Route path="playlists/:id" element={<PlaylistDetailPage />} />
+          <Route path="moods/:id" element={<MoodPage />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="cached" element={<CachedPage />} />
           <Route path="settings" element={<SettingsPage />} />
