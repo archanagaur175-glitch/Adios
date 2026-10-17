@@ -80,3 +80,40 @@ export function IconLyrics({ className }: Props) {
     </svg>
   );
 }
+
+export function IconShuffle({ className }: Props) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M3 6h3.5l3 4" />
+      <path d="M14.5 14H18l3 4" />
+      <path d="M18 6h3v3" />
+      <path d="M3 18h3.5l8-12H18" />
+      <path d="M18 18h3v-3" />
+      <path d="M18 6l3 3-3 3" />
+      <path d="M18 15l3 3-3 3" />
+    </svg>
+  );
+}
+
+export function IconRepeat({ className }: Props) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M17 3l3 3-3 3" />
+      <path d="M4 12V10a4 4 0 0 1 4-4h12" />
+      <path d="M7 21l-3-3 3-3" />
+      <path d="M20 12v2a4 4 0 0 1-4 4H4" />
+    </svg>
+  );
+}
+
+export function IconRepeatOne({ className }: Props) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M17 3l3 3-3 3" />
+      <path d="M4 12V10a4 4 0 0 1 4-4h12" />
+      <path d="M7 21l-3-3 3-3" />
+      <path d="M20 12v2a4 4 0 0 1-4 4H4" />
+      <path d="M11 10.5l1.5-1v4" />
+    </svg>
+  );
+}

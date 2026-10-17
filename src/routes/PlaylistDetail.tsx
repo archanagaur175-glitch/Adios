@@ -1,9 +1,6 @@
 ﻿import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
-import { save } from "@tauri-apps/plugin-dialog";
+import { useParams } from "react-router";
 import {
-  deletePlaylist,
-  exportPlaylistFile,
   getPlaylist,
   removePlaylistTrack,
   renamePlaylist,
@@ -11,18 +8,18 @@ import {
 } from "@/lib/playlistApi";
 import { AddTracks } from "@/components/playlists/AddTracks";
 import { DragTrackList } from "@/components/playlists/DragTrackList";
-import { downloadTracks, refreshCachedIds } from "@/lib/downloadApi";
+import { PlaylistHeaderActions } from "@/components/playlists/PlaylistHeaderActions";
+import { refreshCachedIds } from "@/lib/downloadApi";
 import { useDownloadStore } from "@/store/downloadStore";
 import { usePlayerStore } from "@/store/playerStore";
-import { useUiStore } from "@/store/uiStore";
 import type { PlaylistDetail } from "@/lib/types";
 
-/** Playlist detail (P8.2): rename/delete, add tracks, drag-reorder, export. */
+/** Playlist detail (P8.2): rename/delete, add tracks, drag-reorder, export.
+    P14: header buttons (Play/Shuffle/Download/Delete/Export) moved to
+    PlaylistHeaderActions. */
 export default function PlaylistDetailPage() {
   const { id: idParam } = useParams();
   const id = Number(idParam);
-  const navigate = useNavigate();
-  const pushToast = useUiStore((s) => s.pushToast);
   const [detail, setDetail] = useState<PlaylistDetail | null>(null);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -45,15 +42,6 @@ export default function PlaylistDetailPage() {
     try {
       await renamePlaylist(id, trimmed);
       await refresh();
-    } catch (err) {
-      setError(String(err));
-    }
-  }
-
-  async function remove() {
-    try {
-      await deletePlaylist(id);
-      navigate("/playlists");
     } catch (err) {
       setError(String(err));
     }
@@ -84,34 +72,6 @@ export default function PlaylistDetailPage() {
     }
   }
 
-  async function exportFile() {
-    const path = await save({
-      defaultPath: `${(detail?.name ?? "playlist").replace(/[^\w\- ]+/g, "")}.json`,
-      filters: [{ name: "Adios playlist", extensions: ["json"] }],
-    });
-    if (typeof path !== "string") return;
-    try {
-      const count = await exportPlaylistFile(id, path);
-      pushToast({ message: `Exported ${count} track(s)`, tone: "info" });
-    } catch (err) {
-      setError(String(err));
-    }
-  }
-
-  /** P12: sequential pinned download of every stream member. */
-  async function downloadAll() {
-    if (!detail) return;
-    const streams = detail.tracks.filter((t) => t.source === "stream");
-    if (streams.length === 0) {
-      pushToast({ message: "No stream tracks to download", tone: "info" });
-      return;
-    }
-    pushToast({ message: `Downloading ${streams.length} track(s)…`, tone: "info" });
-    const done = await downloadTracks(streams.map((t) => t.id));
-    pushToast({ message: `Downloaded ${done}/${streams.length} track(s)`, tone: "info" });
-    await refresh();
-  }
-
   if (!detail) {
     return (
       <section className="page">
@@ -138,29 +98,12 @@ export default function PlaylistDetailPage() {
             className="w-72 rounded-ctrl border border-stroke bg-transparent px-3 py-2 text-20 font-display text-ink-1 focus:border-accent"
           />
         </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => void downloadAll()}
-            className="rounded-ctrl border border-stroke px-4 py-2 text-14 text-ink-2 transition hover:bg-glass"
-          >
-            Download playlist
-          </button>
-          <button
-            type="button"
-            onClick={() => void remove()}
-            className="rounded-ctrl border border-stroke px-4 py-2 text-14 text-ink-2 transition hover:bg-glass"
-          >
-            Delete
-          </button>
-          <button
-            type="button"
-            onClick={() => void exportFile()}
-            className="rounded-ctrl border border-stroke px-4 py-2 text-14 text-ink-2 transition hover:bg-glass"
-          >
-            Export JSON
-          </button>
-        </div>
+        <PlaylistHeaderActions
+          playlistId={id}
+          name={detail.name}
+          tracks={detail.tracks}
+          onChanged={() => void refresh()}
+        />
       </header>
 
       {error && <p className="text-danger text-14">{error}</p>}

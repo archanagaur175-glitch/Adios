@@ -6,8 +6,32 @@ import { useLibraryStore } from "@/store/libraryStore";
 import { usePlayerStore } from "@/store/playerStore";
 import { useUiStore } from "@/store/uiStore";
 import { CrossFadeArt } from "./CrossFadeArt";
-import { IconLyrics, IconMute, IconNext, IconPause, IconPlay, IconPrev, IconVolume } from "./icons";
+import {
+  IconLyrics,
+  IconMute,
+  IconNext,
+  IconPause,
+  IconPlay,
+  IconPrev,
+  IconRepeat,
+  IconRepeatOne,
+  IconShuffle,
+  IconVolume,
+} from "./icons";
+import type { RepeatMode } from "@/store/playerStore";
 import "./playerbar.css";
+
+const NEXT_REPEAT: Record<RepeatMode, RepeatMode> = {
+  off: "queue",
+  queue: "track",
+  track: "off",
+};
+
+const REPEAT_LABEL: Record<RepeatMode, string> = {
+  off: "Repeat off",
+  queue: "Repeat queue",
+  track: "Repeat one",
+};
 
 /** Fixed bottom player bar: transport, seek, volume (P3.3).
  *  P6.4: the cover is a button that expands Now Playing (View Transition). */
@@ -19,6 +43,8 @@ export function PlayerBar() {
   const volume = usePlayerStore((s) => s.volume);
   const muted = usePlayerStore((s) => s.muted);
   const hasTrack = usePlayerStore((s) => s.queue.length > 0 && s.currentTrackId != null);
+  const shuffle = usePlayerStore((s) => s.shuffle);
+  const repeatMode = usePlayerStore((s) => s.repeatMode);
   const npOpen = useUiStore((s) => s.nowPlayingOpen);
   const lyricsOpen = useUiStore((s) => s.lyricsOpen);
   const track = useLibraryStore((s) =>
@@ -55,6 +81,15 @@ export function PlayerBar() {
         <div className="player-bar__buttons">
           <button
             type="button"
+            aria-label="Shuffle"
+            aria-pressed={shuffle}
+            onClick={() => usePlayerStore.getState().setShuffle(!shuffle)}
+            className="player-bar__btn"
+          >
+            <IconShuffle />
+          </button>
+          <button
+            type="button"
             aria-label="Previous track"
             disabled={!hasTrack}
             onClick={() => usePlayerStore.getState().prev()}
@@ -79,6 +114,17 @@ export function PlayerBar() {
             className="player-bar__btn"
           >
             <IconNext />
+          </button>
+          <button
+            type="button"
+            aria-label={REPEAT_LABEL[repeatMode]}
+            aria-pressed={repeatMode !== "off"}
+            onClick={() =>
+              usePlayerStore.getState().setRepeatMode(NEXT_REPEAT[repeatMode])
+            }
+            className="player-bar__btn"
+          >
+            {repeatMode === "track" ? <IconRepeatOne /> : <IconRepeat />}
           </button>
         </div>
         <div className="player-bar__seek">

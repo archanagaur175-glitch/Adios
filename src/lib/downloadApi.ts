@@ -44,6 +44,8 @@ export async function downloadTrack(trackId: number): Promise<boolean> {
     // in-memory library so playback + badges use the same key.
     const lib = useLibraryStore.getState();
     lib.setTracks(lib.tracks.map((t) => (t.id === trackId ? { ...t, url: done.url } : t)));
+    const title = lib.tracks.find((t) => t.id === trackId)?.title ?? `Track ${trackId}`;
+    useDownloadStore.getState().markDone({ trackId, title });
     return true;
   } catch (err) {
     useDownloadStore.getState().clearActive(trackId);
