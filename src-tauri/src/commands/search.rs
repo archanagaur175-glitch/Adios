@@ -35,6 +35,16 @@ pub async fn search_itunes(
     client.search(q).await
 }
 
+/// P16.5: iTunes RSS top-songs chart for Home's "Discover new" shelf —
+/// age-aware 6 h cache in meta_cache (stale rows refetch; refresh failure
+/// serves the last chart).
+#[tauri::command]
+pub async fn rss_top_songs(
+    client: State<'_, crate::meta::itunes_rss::RssClient<ReqwestItTransport>>,
+) -> Result<Vec<crate::meta::itunes_rss::RssSongOut>, String> {
+    client.top_songs().await
+}
+
 /// Search MusicBrainz through the cache-first client.
 /// `kind`: "artist" | "recording" | "release".
 #[tauri::command]

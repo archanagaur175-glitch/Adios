@@ -18,7 +18,9 @@ import type { Track } from "@/lib/types";
     session at a time; `generation` invalidates an aborted loop at its next
     checkpoint, and a queue-ref guard aborts when anything but this session
     replaces the queue (a foreign playQueue passes a different array — the
-    NowPlaying panel's re-click passes the same array, so it doesn't kill us). */
+    NowPlaying panel's re-click passes the same array, so it doesn't kill us).
+    P16: `startPicksPlay` reuses the machinery for Home's Picked-for-you
+    shelf (first pick plays, the rest trickle behind it). */
 
 interface RecSession {
   gen: number;
@@ -72,7 +74,7 @@ export function startRecs(playlistId: number, tracks: Track[]): void {
   void run(session, tracks);
 }
 
-function toPick(c: RecCandidate): OnlinePick {
+export function toPick(c: RecCandidate): OnlinePick {
   return {
     itunesId: c.itunesId,
     title: c.title,
@@ -81,6 +83,17 @@ function toPick(c: RecCandidate): OnlinePick {
     artworkUrl: c.artworkUrl ?? undefined,
     genre: c.genre ?? undefined,
   };
+}
+
+/** Insert one resolved pick at a random slot after the current track and
+    record it so a later stop can purge it. */
+function insertRandom(session: RecSession, trackId: number): void {
+  const player = usePlayerStore.getState();
+  const after = Math.max(player.queueIndex, -1) + 1;
+  const span = player.queue.length - after + 1;
+  player.insertQueueAt(trackId, after + Math.floor(Math.random() * span));
+  session.queueRef = usePlayerStore.getState().queue;
+  session.recIds.add(trackId);
 }
 
 async function run(session: RecSession, tracks: Track[]): Promise<void> {
@@ -103,12 +116,7 @@ async function run(session: RecSession, tracks: Track[]): Promise<void> {
     const trackId = await resolve(session, pick);
     if (trackId == null) continue;
     if (stale(session)) return finish(session);
-    const player = usePlayerStore.getState();
-    const after = Math.max(player.queueIndex, -1) + 1;
-    const span = player.queue.length - after + 1;
-    player.insertQueueAt(trackId, after + Math.floor(Math.random() * span));
-    session.queueRef = usePlayerStore.getState().queue;
-    session.recIds.add(trackId);
+    insertRandom(session, trackId);
     added++;
   }
   if (stale(session)) return finish(session);
@@ -118,6 +126,65 @@ async function run(session: RecSession, tracks: Track[]): Promise<void> {
     const s = added === 1 ? "" : "s";
     useUiStore.getState().pushToast({
       message: `Added ${added} recommendation${s} to the queue`,
+      tone: "info",
+    });
+  }
+}
+
+/** P16.4: Play-all for Home's "Picked for you" — the first resolvable pick
+    REPLACES the queue as the new context (instant first play via the
+    library fast-path when possible) and the rest trickle in behind it, same
+    session machinery as playlist recs. playlistId 0 never matches a real
+    playlist (rowids start at 1), so playlist toggles can't purge it. */
+export function startPicksPlay(picks: RecCandidate[]): void {
+  if (picks.length === 0) return;
+  generation++;
+  const session: RecSession = {
+    gen: generation,
+    playlistId: 0,
+    recIds: new Set(),
+    queueRef: usePlayerStore.getState().queue,
+  };
+  active = session;
+  void runPicks(session, picks);
+}
+
+async function runPicks(session: RecSession, picks: RecCandidate[]): Promise<void> {
+  let firstIdx = -1;
+  let firstId: number | null = null;
+  for (let i = 0; i < picks.length; i++) {
+    if (stale(session)) return finish(session);
+    firstId = await resolve(session, picks[i]);
+    if (firstId != null) {
+      firstIdx = i;
+      break;
+    }
+  }
+  if (firstId == null) {
+    finish(session);
+    useUiStore.getState().pushToast({
+      message: "No stream found for this shelf",
+      tone: "danger",
+    });
+    return;
+  }
+  if (stale(session)) return finish(session);
+  usePlayerStore.getState().playQueue([firstId], 0);
+  session.queueRef = usePlayerStore.getState().queue;
+  session.recIds.add(firstId);
+  let added = 0;
+  for (let i = firstIdx + 1; i < picks.length; i++) {
+    if (stale(session)) return finish(session);
+    const trackId = await resolve(session, picks[i]);
+    if (trackId == null) continue;
+    if (stale(session)) return finish(session);
+    insertRandom(session, trackId);
+    added++;
+  }
+  if (stale(session)) return finish(session);
+  if (added > 0) {
+    useUiStore.getState().pushToast({
+      message: `Playing the shelf — added ${added} more to the queue`,
       tone: "info",
     });
   }

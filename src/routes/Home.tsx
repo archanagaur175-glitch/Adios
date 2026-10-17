@@ -1,14 +1,16 @@
 ﻿import { useEffect, useMemo } from "react";
 import { CoverArt } from "@/components/common/CoverArt";
+import { PickedForYou } from "@/components/home/PickedForYou";
+import { DiscoverNew } from "@/components/home/DiscoverNew";
 import { TrackShelf } from "@/components/home/TrackShelf";
 import { TasteShelves } from "@/components/home/TasteShelves";
 import { useLibraryStore } from "@/store/libraryStore";
 import { usePlaylistStore } from "@/store/playlistStore";
 import { usePlayerStore } from "@/store/playerStore";
 
-/** Home: resume the queue, taste shelves from play history (P16-C), jump
-    back into recently added, shuffle the library. Stores are hydrated at
-    boot; the P16 online sections (A/B/D) mount below as they land. */
+/** Home: resume the queue, picked shelf (P16-A), taste shelves (P16-C),
+    recently added, Discover chart (P16-D), shuffle. Stores are hydrated at
+    boot; the P16 moods section (B) mounts below when it lands. */
 
 export default function HomePage() {
   const tracks = useLibraryStore((s) => s.tracks);
@@ -96,9 +98,13 @@ export default function HomePage() {
         </div>
       )}
 
+      <PickedForYou />
+
       <TasteShelves />
 
       <TrackShelf title="Recently added" tracks={recent} />
+
+      <DiscoverNew />
 
       {tracks.length === 0 && (
         <p className="text-ink-3">

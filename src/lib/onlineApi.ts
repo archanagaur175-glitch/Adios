@@ -27,6 +27,25 @@ export async function searchItunes(query: string): Promise<ItunesTrack[]> {
   return invoke<ItunesTrack[]>("search_itunes", { query });
 }
 
+/** P16.5: one row of Apple's RSS top-songs chart (no duration — RSS has
+    none; structurally a `RecCandidate`, so it feeds picks directly). */
+export interface RssSong {
+  itunesId: number;
+  title: string;
+  artist: string;
+  artworkUrl?: string | null;
+  genre?: string | null;
+  releaseDate?: string | null;
+}
+
+/** RSS chart for Home's Discover shelf — 6 h age-aware cache Rust-side;
+    a failed refresh serves the last chart, a cold failure throws (the
+    shelf falls back to a seeded search and hides itself if that fails too). */
+export async function rssTopSongs(): Promise<RssSong[]> {
+  if (!inTauri) return [];
+  return invoke<RssSong[]>("rss_top_songs");
+}
+
 /** Persist an online pick as a real 'stream' library row. Dedupe by
     `mbRecordingId` (re-pick refreshes the URL); returns the full row.
     P13: `artworkUrl` (iTunes) is downloaded and cached as the cover. */
