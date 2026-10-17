@@ -75,6 +75,7 @@ export async function persistPick(pick: OnlinePick, candidate: Candidate): Promi
     title: pick.title,
     durationMs: pick.durationMs ?? null,
     mbRecordingId: identityId(pick) || null,
+    artworkUrl: pick.artworkUrl ?? null,
   });
   const lib = useLibraryStore.getState();
   const existing = lib.tracks.some((t) => t.id === row.id);

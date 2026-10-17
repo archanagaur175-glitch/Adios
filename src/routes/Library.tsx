@@ -5,15 +5,18 @@ import { useScan } from "@/components/library/useScan";
 import { inTauri } from "@/lib/api";
 import { formatDuration } from "@/lib/format";
 import { listPlayHistory } from "@/lib/historyApi";
+import { refreshCachedIds } from "@/lib/downloadApi";
+import { useDownloadStore } from "@/store/downloadStore";
 import { useLibraryStore } from "@/store/libraryStore";
 import { usePlayerStore } from "@/store/playerStore";
 import type { Track } from "@/lib/types";
 
-/** P11/P12: Library = Downloads (local files) + History (all plays, most
-    recent first). Scan lives on the Downloads tab; import enrichment was
-    removed in P12. */
+/** P11/P12: Library = Downloads (local files + P13 pinned stream
+    downloads) + History (all plays, most recent first). Scan lives on the
+    Downloads tab; import enrichment was removed in P12. */
 export default function LibraryPage() {
   const tracks = useLibraryStore((s) => s.tracks);
+  const cachedIds = useDownloadStore((s) => s.cachedIds);
   const [tab, setTab] = useState<LibraryTab>("downloads");
   const [history, setHistory] = useState<Track[]>([]);
   const { summary, scanning, error, refresh, handleScan } = useScan();
@@ -21,6 +24,11 @@ export default function LibraryPage() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    const ids = tracks.filter((t) => t.source === "stream").map((t) => t.id);
+    void refreshCachedIds(ids);
+  }, [tracks]);
 
   const refreshHistory = useCallback(async () => {
     try {
@@ -35,6 +43,7 @@ export default function LibraryPage() {
   }, [tab, refreshHistory]);
 
   const downloads = tracks.filter((t) => t.source === "local");
+  const pinned = tracks.filter((t) => t.source === "stream" && cachedIds[t.id]);
 
   function playFrom(list: Track[], trackId: number) {
     usePlayerStore
@@ -43,7 +52,7 @@ export default function LibraryPage() {
   }
 
   return (
-    <section className="page flex h-full flex-col gap-4">
+    <section className="page flex h-full flex-col gap-4 overflow-y-auto">
       <header className="flex items-center justify-between">
         <h1 className="text-28 font-display">Library</h1>
         <LibraryTabs value={tab} onChange={setTab} />
@@ -79,6 +88,19 @@ export default function LibraryPage() {
             </p>
           ) : (
             <TrackList tracks={downloads} onPlay={(id) => playFrom(downloads, id)} />
+          )}
+
+          {pinned.length > 0 && (
+            <div>
+              <h2 className="mb-2 text-11 font-medium uppercase tracking-wide text-ink-3">
+                Pinned downloads
+              </h2>
+              <TrackList
+                tracks={pinned}
+                onPlay={(id) => playFrom(pinned, id)}
+                right={(t) => `${formatDuration(t.durationMs)} · on disk`}
+              />
+            </div>
           )}
         </>
       ) : history.length === 0 ? (

@@ -24,13 +24,15 @@ export async function searchItunes(query: string): Promise<ItunesTrack[]> {
 }
 
 /** Persist an online pick as a real 'stream' library row. Dedupe by
-    `mbRecordingId` (re-pick refreshes the URL); returns the full row. */
+    `mbRecordingId` (re-pick refreshes the URL); returns the full row.
+    P13: `artworkUrl` (iTunes) is downloaded and cached as the cover. */
 export async function addStreamTrack(input: {
   url: string;
   artist: string;
   title: string;
   durationMs?: number | null;
   mbRecordingId?: string | null;
+  artworkUrl?: string | null;
 }): Promise<Track> {
   return invoke<Track>("add_stream_track", {
     url: input.url,
@@ -38,5 +40,6 @@ export async function addStreamTrack(input: {
     title: input.title,
     durationMs: input.durationMs ?? null,
     mbRecordingId: input.mbRecordingId ?? null,
+    artworkUrl: input.artworkUrl ?? null,
   });
 }

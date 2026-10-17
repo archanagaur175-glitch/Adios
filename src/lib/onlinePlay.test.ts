@@ -51,6 +51,7 @@ describe("pickFromRow", () => {
         title: "Song",
         sub: "Artist",
         durationMs: 180000,
+        artworkUrl: "https://is1-ssl.mzstatic.com/image/thumb/x/100x100bb.jpg",
       }),
     ).toEqual({
       mbid: "itunes:9",
@@ -58,6 +59,7 @@ describe("pickFromRow", () => {
       title: "Song",
       artist: "Artist",
       durationMs: 180000,
+      artworkUrl: "https://is1-ssl.mzstatic.com/image/thumb/x/100x100bb.jpg",
     });
   });
 
@@ -68,6 +70,7 @@ describe("pickFromRow", () => {
       title: "Song",
       artist: undefined,
       durationMs: undefined,
+      artworkUrl: undefined,
     });
   });
 });

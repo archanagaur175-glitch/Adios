@@ -35,6 +35,7 @@ export function AddTracks({ playlistId, memberIds, onAdded }: Props) {
   const pushToast = useUiStore((s) => s.pushToast);
   const hitPick = (h: OnlineTrackHit): OnlinePick => ({
     mbid: h.mbid, itunesId: h.itunesId, title: h.title, artist: h.artist, durationMs: h.durationMs,
+    artworkUrl: h.artworkUrl,
   });
 
   // Local FTS layer (instant).
