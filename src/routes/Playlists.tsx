@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { open } from "@tauri-apps/plugin-dialog";
 import { inTauri } from "@/lib/api";
 import { createPlaylist, deletePlaylist, importPlaylistFile } from "@/lib/playlistApi";
+import { SpotifyImport } from "@/components/playlists/SpotifyImport";
 import { usePlaylistStore } from "@/store/playlistStore";
 import { useUiStore } from "@/store/uiStore";
 
@@ -113,6 +114,8 @@ export default function PlaylistsPage() {
           className="w-72 rounded-ctrl border border-stroke bg-transparent px-3 py-2 text-14 text-ink-1 placeholder:text-ink-3 focus:border-accent"
         />
       </div>
+
+      <SpotifyImport onImported={() => void load()} />
 
       {error && <p className="text-danger text-14">{error}</p>}
 

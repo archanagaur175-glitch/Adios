@@ -59,7 +59,7 @@ pub fn playlist_from_html(html: &str) -> Result<(String, Vec<SpotifyTrackOut>), 
         .props
         .page_props
         .state
-        .data
+        .and_then(|s| s.data)
         .and_then(|d| d.entity)
         .ok_or("Playlist not found or private — Adios can only import public playlists")?;
     let name = entity
@@ -95,7 +95,7 @@ pub fn track_from_html(html: &str) -> Result<SpotifyTrackOut, String> {
         .props
         .page_props
         .state
-        .data
+        .and_then(|s| s.data)
         .and_then(|d| d.entity)
         .ok_or("Spotify track page had no track")?;
     let uri = entity

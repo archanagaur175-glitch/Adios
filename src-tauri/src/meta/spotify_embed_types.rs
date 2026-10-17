@@ -21,13 +21,14 @@ pub struct EmbedProps<T> {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EmbedPageProps<T> {
-    pub state: EmbedState<T>,
+    /// Option: error pages (unknown/private playlist ids) ship a
+    /// NEXT_DATA whose pageProps has no `state` at all.
+    pub state: Option<EmbedState<T>>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct EmbedState<T> {
     pub data: Option<EmbedData<T>>,
-    pub settings: Option<EmbedSettings>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -35,22 +36,10 @@ pub struct EmbedData<T> {
     pub entity: Option<T>,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct EmbedSettings {
-    pub session: Option<EmbedSession>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct EmbedSession {
-    #[serde(rename = "accessToken")]
-    pub access_token: Option<String>,
-}
-
 /// Playlist embed entity (open.spotify.com/embed/playlist/{id}).
 #[derive(Debug, Deserialize)]
 pub struct PlaylistEntity {
     pub name: Option<String>,
-    pub uri: Option<String>,
     /// camelCase `trackList` — the first ≤100 tracks WITH metadata.
     #[serde(rename = "trackList")]
     pub track_list: Option<Vec<EmbedTrackItem>>,
@@ -92,8 +81,6 @@ pub struct SpPlaylist {
 
 #[derive(Debug, Deserialize)]
 pub struct SpContents {
-    pub pos: Option<i64>,
-    pub truncated: Option<bool>,
     pub items: Option<Vec<SpItem>>,
 }
 

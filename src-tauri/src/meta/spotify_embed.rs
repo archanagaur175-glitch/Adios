@@ -90,8 +90,10 @@ pub async fn fetch_full_playlist(
 ) -> Result<SpotifyPlaylistOut, String> {
     let id = parse_playlist_id(input)?;
     let html = get_text(client, &format!("{}/embed/playlist/{id}", bases.open)).await?;
-    let token = extract_access_token(&html).ok_or("Spotify embed token missing — the import endpoint may have changed")?;
+    // Entity first: a missing entity is the honest "not found or private"
+    // (error pages also lack the session token — don't blame the token).
     let (name, mut tracks) = playlist_from_html(&html)?;
+    let token = extract_access_token(&html).ok_or("Spotify embed token missing — the import endpoint may have changed")?;
     let total = match spclient_page(client, bases, &token, &id, 0, 1).await {
         Ok(body) => sp_uris_from_json(&body)?.0.max(tracks.len() as i64),
         Err(e) => {
