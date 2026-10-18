@@ -65,6 +65,45 @@
   color: #fff;
 }
 
+.titlebar__burger {
+  display: none;
+}
+
+/* P18.2b: phone titlebar — burger nav, no desktop window chrome. */
+@media (max-width: 767px) {
+  .titlebar {
+    height: 44px;
+    z-index: 61; /* burger stays above the nav drawer */
+  }
+
+  .titlebar__controls {
+    display: none;
+  }
+
+  .titlebar__burger {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin-left: var(--space-1);
+    border: none;
+    border-radius: var(--radius-ctrl);
+    background: transparent;
+    color: var(--text-2);
+    font-size: var(--text-16);
+    cursor: pointer;
+  }
+
+  .titlebar__burger:active {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  /* Keep the brand in the left cluster beside the burger. */
+  .titlebar__brand {
+    margin-right: auto;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .titlebar__btn {
     transition: none;

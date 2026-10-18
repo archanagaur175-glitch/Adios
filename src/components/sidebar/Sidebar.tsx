@@ -28,13 +28,19 @@ const links: { to: string; label: string; icon: IconName; end?: boolean }[] = [
 export function Sidebar({
   collapsed,
   onToggle,
+  open,
+  onNavigate,
 }: {
   collapsed: boolean;
   onToggle: () => void;
+  open?: boolean;
+  onNavigate?: () => void;
 }) {
   return (
     <nav
-      className={`sidebar${collapsed ? " sidebar--collapsed" : ""}`}
+      className={`sidebar${collapsed ? " sidebar--collapsed" : ""}${
+        open ? " sidebar--open" : ""
+      }`}
       aria-label="Main navigation"
     >
       <button
@@ -52,6 +58,7 @@ export function Sidebar({
             <NavLink
               to={to}
               end={end}
+              onClick={onNavigate}
               className={({ isActive }) =>
                 `sidebar__link${isActive ? " sidebar__link--active" : ""}`
               }

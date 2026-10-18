@@ -26,7 +26,13 @@ const actions: { glyph: Glyph; label: string; run: () => Promise<void> }[] = [
   { glyph: "close", label: "Close", run: () => appWindow?.close() ?? Promise.resolve() },
 ];
 
-export function Titlebar() {
+export function Titlebar({
+  onMenu,
+  menuOpen,
+}: {
+  onMenu?: () => void;
+  menuOpen?: boolean;
+}) {
   const [maximized, setMaximized] = useState(false);
 
   useEffect(() => {
@@ -45,6 +51,17 @@ export function Titlebar() {
 
   return (
     <header className="titlebar" data-tauri-drag-region>
+      {onMenu && (
+        <button
+          type="button"
+          className="titlebar__burger"
+          aria-label="Open navigation"
+          aria-expanded={menuOpen}
+          onClick={onMenu}
+        >
+          ☰
+        </button>
+      )}
       <span className="titlebar__brand" data-tauri-drag-region>
         <span className="titlebar__name" data-tauri-drag-region>
           Adios

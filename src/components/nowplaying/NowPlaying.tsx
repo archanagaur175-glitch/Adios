@@ -8,10 +8,16 @@ import {
   IconPause,
   IconPlay,
   IconPrev,
+  IconRepeat,
+  IconRepeatOne,
+  IconShuffle,
 } from "@/components/player/icons";
+import { AddToPlaylistButton } from "@/components/player/AddToPlaylistButton";
+import type { RepeatMode } from "@/store/playerStore";
 import { HeroArt } from "./HeroArt";
 import { LyricsPanel } from "@/components/lyrics/LyricsPanel";
 import "./nowplaying.css";
+import "./nowplaying.mobile.css";
 
 /** P6.4 expanded Now Playing (DESIGN §5/L3): hero art + meta + transport,
     synced lyrics column (P7.2) and the queue list. Opens via
@@ -22,6 +28,13 @@ export function NowPlaying() {
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const queue = usePlayerStore((s) => s.queue);
   const queueIndex = usePlayerStore((s) => s.queueIndex);
+  const shuffle = usePlayerStore((s) => s.shuffle);
+  const repeatMode = usePlayerStore((s) => s.repeatMode);
+  const repeatLabel: Record<RepeatMode, string> = {
+    off: "Repeat off",
+    queue: "Repeat queue",
+    track: "Repeat one",
+  };
   const tracks = useLibraryStore((s) => s.tracks);
   const track = tracks.find((t) => t.id === currentTrackId) ?? null;
 
@@ -62,6 +75,15 @@ export function NowPlaying() {
           <div className="np__transport np__chrome">
             <button
               type="button"
+              aria-label="Shuffle"
+              aria-pressed={shuffle}
+              className="np__btn"
+              onClick={() => usePlayerStore.getState().setShuffle(!shuffle)}
+            >
+              <IconShuffle />
+            </button>
+            <button
+              type="button"
               aria-label="Previous track"
               className="np__btn"
               onClick={() => usePlayerStore.getState().prev()}
@@ -84,6 +106,24 @@ export function NowPlaying() {
             >
               <IconNext />
             </button>
+            <button
+              type="button"
+              aria-label={repeatLabel[repeatMode]}
+              aria-pressed={repeatMode !== "off"}
+              className="np__btn"
+              onClick={() =>
+                usePlayerStore.getState().setRepeatMode(
+                  repeatMode === "off"
+                    ? "queue"
+                    : repeatMode === "queue"
+                      ? "track"
+                      : "off",
+                )
+              }
+            >
+              {repeatMode === "track" ? <IconRepeatOne /> : <IconRepeat />}
+            </button>
+            <AddToPlaylistButton />
           </div>
         </div>
 

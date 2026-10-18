@@ -22,3 +22,44 @@
   gap: var(--space-3);
   max-width: 960px;
 }
+
+/* P18.2b: phone shell — 44px titlebar offset, tighter gutters, taller
+   player-bar clearance, drawer scrim, and the global touch-target floor
+   (audit 18.2a: every route had interactive targets under 44px). */
+@media (max-width: 767px) {
+  .shell__main {
+    padding-top: calc(44px + var(--space-4));
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+    padding-bottom: calc(116px + var(--space-4));
+  }
+
+  .shell__scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  button,
+  a[href],
+  label,
+  select,
+  [role="button"],
+  [role="tab"],
+  [role="link"],
+  [role="menuitem"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  input:not([type="range"]):not([type="checkbox"]) {
+    min-height: 44px;
+  }
+
+  input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+  }
+}

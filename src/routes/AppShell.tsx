@@ -12,22 +12,32 @@ import "./appshell.css";
 
 export function AppShell() {
   const [collapsed, setCollapsed] = useState(false);
+  const [drawer, setDrawer] = useState(false);
   useEffect(() => installShortcuts(), []);
 
   return (
     <div className="app-surface">
       <Aurora />
       <VisualizerHost />
-      <Titlebar />
+      <Titlebar onMenu={() => setDrawer((d) => !d)} menuOpen={drawer} />
       <div className="shell">
         <Sidebar
           collapsed={collapsed}
           onToggle={() => setCollapsed((c) => !c)}
+          open={drawer}
+          onNavigate={() => setDrawer(false)}
         />
         <main className="shell__main" id="main-scroll">
           <Outlet />
         </main>
       </div>
+      {drawer && (
+        <div
+          className="shell__scrim"
+          onClick={() => setDrawer(false)}
+          role="presentation"
+        />
+      )}
       <PlayerBar />
       <NowPlaying />
       <SearchOverlay />

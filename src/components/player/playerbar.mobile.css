@@ -1,0 +1,59 @@
+/* P18.2b: phone player — slim seek row on top, info + transport below;
+   shuffle/repeat/volume/lyrics/add live in the expanded Now Playing
+   panel (parity added there) — volume uses the device's hardware keys.
+   Split from playerbar.css to keep both files <= 200 lines. */
+
+@media (max-width: 767px) {
+  .player-bar {
+    left: var(--space-2);
+    right: var(--space-2);
+    bottom: var(--space-2);
+    height: auto;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "seek seek"
+      "info transport";
+    gap: var(--space-1) var(--space-3);
+    padding: var(--space-2) var(--space-3) var(--space-3);
+  }
+
+  .player-bar__center {
+    display: contents;
+  }
+
+  .player-bar__seek {
+    grid-area: seek;
+  }
+
+  .player-bar__info {
+    grid-area: info;
+  }
+
+  .player-bar__buttons {
+    grid-area: transport;
+    gap: var(--space-2);
+  }
+
+  .player-bar__volume {
+    display: none;
+  }
+
+  .player-bar__btn--shuffle,
+  .player-bar__btn--repeat {
+    display: none;
+  }
+
+  .player-bar__btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .player-bar__btn--primary {
+    width: 48px;
+    height: 48px;
+  }
+
+  .player-bar__seek input[type="range"] {
+    height: 44px;
+  }
+}

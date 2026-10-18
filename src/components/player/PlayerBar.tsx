@@ -21,6 +21,7 @@ import {
 } from "./icons";
 import type { RepeatMode } from "@/store/playerStore";
 import "./playerbar.css";
+import "./playerbar.mobile.css";
 
 const NEXT_REPEAT: Record<RepeatMode, RepeatMode> = {
   off: "queue",
@@ -85,7 +86,7 @@ export function PlayerBar() {
             aria-label="Shuffle"
             aria-pressed={shuffle}
             onClick={() => usePlayerStore.getState().setShuffle(!shuffle)}
-            className="player-bar__btn"
+            className="player-bar__btn player-bar__btn--shuffle"
           >
             <IconShuffle />
           </button>
@@ -123,7 +124,7 @@ export function PlayerBar() {
             onClick={() =>
               usePlayerStore.getState().setRepeatMode(NEXT_REPEAT[repeatMode])
             }
-            className="player-bar__btn"
+            className="player-bar__btn player-bar__btn--repeat"
           >
             {repeatMode === "track" ? <IconRepeatOne /> : <IconRepeat />}
           </button>
