@@ -3,6 +3,7 @@ import { CacheSettings } from "@/components/settings/CacheSettings";
 import { ContactSettings } from "@/components/settings/ContactSettings";
 import { ResolverSettings } from "@/components/settings/ResolverSettings";
 import { YtdlpSettings } from "@/components/settings/YtdlpSettings";
+import { isAndroid } from "@/lib/api";
 
 export default function SettingsPage() {
   return (
@@ -11,7 +12,7 @@ export default function SettingsPage() {
       <AppearanceSettings />
       <CacheSettings />
       <ResolverSettings />
-      <YtdlpSettings />
+      {!isAndroid() && <YtdlpSettings />}
       <ContactSettings />
     </section>
   );

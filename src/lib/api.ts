@@ -4,6 +4,11 @@ import type { EvictStats, LyricsPayload, SearchPage, Track } from "@/lib/types";
 /** True when running inside the Tauri webview (not plain vite/preview). */
 export const inTauri = "__TAURI_INTERNALS__" in window;
 
+/** True on the Android WebView — desktop-only features (yt-dlp updater,
+    native dialogs) are hidden there; online play is Piped-only (D19). */
+export const isAndroid = (): boolean =>
+  typeof navigator !== "undefined" && navigator.userAgent.includes("Android");
+
 /** All settings: key → parsed value. Empty map outside Tauri or on error. */
 export async function getSettings(): Promise<Record<string, unknown>> {
   if (!inTauri) return {};

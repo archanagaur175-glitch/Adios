@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { inTauri } from "@/lib/api";
+import { inTauri, isAndroid } from "@/lib/api";
 import {
   resolverHealth,
   testInstance,
@@ -48,7 +48,9 @@ export function ResolverSettings() {
   async function checkAll() {
     setChecking(true);
     try {
-      setHealth(await resolverHealth());
+      const res = await resolverHealth();
+      // Android has no yt-dlp (D19) — the row would always read "down".
+      setHealth(isAndroid() ? res.filter((h) => h.name !== "ytdlp") : res);
     } catch {
       setHealth([]);
     } finally {
