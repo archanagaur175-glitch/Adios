@@ -92,11 +92,7 @@ fn fts_triggers_track_insert_update_delete() {
     assert_eq!(fts_matches(&conn, "Teardrop"), 1, "insert synced into fts");
     assert_eq!(fts_matches(&conn, "teardrop"), 1, "case-insensitive match");
 
-    conn.execute(
-        "UPDATE tracks SET title = 'Angel' WHERE id = ?1",
-        [id],
-    )
-    .expect("update");
+    conn.execute("UPDATE tracks SET title = 'Angel' WHERE id = ?1", [id]).expect("update");
     assert_eq!(fts_matches(&conn, "Teardrop"), 0, "old value removed");
     assert_eq!(fts_matches(&conn, "Angel"), 1, "new value indexed");
 

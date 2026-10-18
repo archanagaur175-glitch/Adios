@@ -131,8 +131,7 @@ impl ItunesClient<ReqwestItTransport> {
 /// Decode a raw iTunes search body (pure, unit-tested). Relevance order
 /// from iTunes is preserved (no explicit rank field — first = best match).
 pub fn parse_and_rank(body: &str) -> Result<Vec<ItunesTrackOut>, String> {
-    let page: ItPage =
-        serde_json::from_str(body).map_err(|e| format!("itunes: bad json: {e}"))?;
+    let page: ItPage = serde_json::from_str(body).map_err(|e| format!("itunes: bad json: {e}"))?;
     Ok(page
         .results
         .into_iter()
@@ -164,9 +163,7 @@ impl<T: ItTransport> ItunesClient<T> {
         let mut stmt = conn
             .prepare("SELECT payload_json FROM meta_cache WHERE cache_key = ?1 AND kind = 'itunes'")
             .map_err(|e| format!("itunes: cache read: {e}"))?;
-        let mut rows = stmt
-            .query_map([key], |r| r.get::<_, String>(0))
-            .map_err(|e| format!("itunes: cache read: {e}"))?;
+        let mut rows = stmt.query_map([key], |r| r.get::<_, String>(0)).map_err(|e| format!("itunes: cache read: {e}"))?;
         rows.next().transpose().map_err(|e| format!("itunes: cache read: {e}"))
     }
 

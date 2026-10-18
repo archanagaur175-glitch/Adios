@@ -13,14 +13,12 @@ import { usePlayerStore } from "@/store/playerStore";
 import { useUiStore } from "@/store/uiStore";
 import type { Track } from "@/lib/types";
 
-/** P15: queue-only recommendation sessions — trickle recs into the CURRENT
-    queue (playlist DB untouched; recs become normal stream rows). One active
-    session at a time; `generation` invalidates an aborted loop at its next
-    checkpoint, and a queue-ref guard aborts when anything but this session
-    replaces the queue (a foreign playQueue passes a different array — the
-    NowPlaying panel's re-click passes the same array, so it doesn't kill us).
-    P16: `startPicksPlay` reuses the machinery for Home's Picked-for-you
-    shelf (first pick plays, the rest trickle behind it). */
+/** P15: queue-only recommendation sessions — trickle recs into the CURRENT queue
+    (playlist DB untouched; recs become normal stream rows). One active session;
+    `generation` invalidates an aborted loop at its next checkpoint, and a queue-ref
+    guard aborts when anything but this session replaces the queue (a foreign
+    playQueue passes a different array — NowPlaying's re-click passes the same array,
+    so it doesn't kill us). P16: `startPicksPlay` reuses this for Picked-for-you. */
 
 interface RecSession {
   gen: number;
@@ -41,8 +39,7 @@ function finish(session: RecSession): void {
   if (active === session) active = null;
 }
 
-/** Abort the session for `playlistId` (undefined = whichever is active) and
-    purge its recs from the queue — the current track survives. */
+/** Abort the session for `playlistId` (undefined = active) and purge its recs from the queue — the current track survives. */
 export function stopRecs(playlistId?: number): void {
   const session = active;
   if (!session) return;
@@ -56,11 +53,9 @@ export function stopRecs(playlistId?: number): void {
   }
 }
 
-/** Start (or restart) a trickle for this playlist's tracks. Immediate even
-    mid-play; no-op on an empty playlist. */
+/** Start (or restart) a trickle for this playlist's tracks. Immediate even mid-play; no-op on an empty playlist. */
 export function startRecs(playlistId: number, tracks: Track[]): void {
-  // Empty queue → nothing to inject; the next Play (header/row, pref on)
-  // calls startRecs again with a populated queue.
+  // Empty queue → nothing to inject; the next Play (pref on) calls startRecs again with a populated queue.
   if (recCountFor(tracks.length) <= 0) return;
   if (usePlayerStore.getState().queue.length === 0) return;
   generation++;
@@ -86,8 +81,7 @@ export function toPick(c: RecCandidate): OnlinePick {
   };
 }
 
-/** Insert one resolved pick at a random slot after the current track and
-    record it so a later stop can purge it. */
+/** Insert one resolved pick at a random slot after the current track and record it so a later stop can purge it. */
 function insertRandom(session: RecSession, trackId: number): void {
   const player = usePlayerStore.getState();
   const after = Math.max(player.queueIndex, -1) + 1;
@@ -121,8 +115,7 @@ async function run(session: RecSession, tracks: Track[]): Promise<void> {
     added++;
   }
   if (stale(session)) return finish(session);
-  // Success: KEEP the session (recIds + queueRef) so a later toggle OFF can
-  // still purge what we queued. Only abort paths clear it.
+  // Success: KEEP the session (recIds + queueRef) so a later toggle OFF can still purge what we queued. Only abort paths clear it.
   if (added > 0) {
     const s = added === 1 ? "" : "s";
     useUiStore.getState().pushToast({
@@ -132,11 +125,10 @@ async function run(session: RecSession, tracks: Track[]): Promise<void> {
   }
 }
 
-/** P16.4: Play-all for Home's "Picked for you" — the first resolvable pick
-    REPLACES the queue as the new context (instant first play via the
-    library fast-path when possible) and the rest trickle in behind it, same
-    session machinery as playlist recs. playlistId 0 never matches a real
-    playlist (rowids start at 1), so playlist toggles can't purge it. */
+/** P16.4: Play-all for Home's "Picked for you" — the first resolvable pick REPLACES
+    the queue as the new context (instant first play via library fast-path) and the
+    rest trickle in behind it, same session machinery as playlist recs. playlistId 0
+    never matches a real playlist (rowids start at 1), so toggles can't purge it. */
 export function startPicksPlay(picks: RecCandidate[]): void {
   if (picks.length === 0) return;
   generation++;
@@ -191,8 +183,7 @@ async function runPicks(session: RecSession, picks: RecCandidate[]): Promise<voi
   }
 }
 
-/** Fast path: already in the library → its id; else resolve + persist.
-    Returns null on a miss (honest failure — skip this pick). */
+/** Fast path: already in the library → its id; else resolve + persist. Null on a miss (honest failure — skip the pick). */
 async function resolve(session: RecSession, pick: RecCandidate): Promise<number | null> {
   const fast = findLibraryMatch(pick, useLibraryStore.getState().tracks);
   if (fast != null) return fast;
