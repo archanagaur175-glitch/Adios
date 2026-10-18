@@ -144,6 +144,18 @@ export async function scanFolder(folder: string): Promise<ScanSummary | null> {
   return invoke<ScanSummary>("scan_folder", { folder });
 }
 
+/** P18.1c: directory listing for the in-app folder picker. */
+export interface DirListing {
+  parent: string | null;
+  dirs: string[];
+}
+
+/** List sub-directories of a path (sorted, hidden `.` entries excluded). */
+export async function listDirectory(path: string): Promise<DirListing> {
+  if (!inTauri) throw new Error("folder listing needs the app");
+  return invoke<DirListing>("list_directory", { path });
+}
+
 // ---------- Search (P5.3) ----------
 
 /** Instant local FTS5 search (≤ 50 rows); empty input short-circuits. */

@@ -1,6 +1,7 @@
 ﻿import { useCallback, useEffect, useState } from "react";
 import { LibraryTabs, type LibraryTab } from "@/components/library/LibraryTabs";
 import { TrackList } from "@/components/library/TrackList";
+import { FolderPicker } from "@/components/library/FolderPicker";
 import { useScan } from "@/components/library/useScan";
 import { inTauri } from "@/lib/api";
 import { formatDuration } from "@/lib/format";
@@ -19,7 +20,17 @@ export default function LibraryPage() {
   const cachedIds = useDownloadStore((s) => s.cachedIds);
   const [tab, setTab] = useState<LibraryTab>("downloads");
   const [history, setHistory] = useState<Track[]>([]);
-  const { summary, scanning, error, refresh, handleScan } = useScan();
+  const {
+    summary,
+    scanning,
+    error,
+    refresh,
+    handleScan,
+    picking,
+    pickStart,
+    pickFolder,
+    cancelPick,
+  } = useScan();
 
   useEffect(() => {
     void refresh();
@@ -78,6 +89,14 @@ export default function LibraryPage() {
               Added {summary.added} · skipped {summary.skipped} · failed{" "}
               {summary.failed} · {summary.elapsedMs} ms — {summary.folder}
             </p>
+          )}
+
+          {picking && (
+            <FolderPicker
+              start={pickStart}
+              onPick={pickFolder}
+              onCancel={cancelPick}
+            />
           )}
 
           {downloads.length === 0 ? (

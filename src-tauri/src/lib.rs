@@ -158,6 +158,7 @@ pub fn run() {
             commands::library::delete_track,
             commands::server::server_info,
             commands::scan::scan_folder,
+            commands::scan::list_directory,
             commands::resolver::resolve_query,
             commands::resolver::resolver_health,
             commands::resolver::test_instance,
