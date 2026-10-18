@@ -4,11 +4,16 @@
 //! `WM_HOTKEY` to that thread's queue even while the app is unfocused. Each
 //! key is forwarded to the webview as the `media-key` Tauri event.
 
+#[cfg(windows)]
 use tauri::Emitter;
 
+#[cfg(windows)]
 const HOTKEY_PLAY_PAUSE: i32 = 1;
+#[cfg(windows)]
 const HOTKEY_NEXT: i32 = 2;
+#[cfg(windows)]
 const HOTKEY_PREV: i32 = 3;
+#[cfg(windows)]
 const HOTKEY_STOP: i32 = 4;
 
 /// Spawn the hotkey thread (Windows-only; no-op elsewhere).

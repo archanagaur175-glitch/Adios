@@ -12,6 +12,7 @@ use tauri::{Listener, Manager};
 pub fn run() {
     // D10/P9.3: single-instance must register FIRST; a second launch focuses
     // the existing main window instead of opening a duplicate.
+    #[cfg_attr(mobile, allow(unused_mut))]
     let mut builder = tauri::Builder::default();
     #[cfg(desktop)]
     {

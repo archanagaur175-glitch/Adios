@@ -29,6 +29,7 @@ pub fn bin_handle(initial: PathBuf) -> BinHandle {
 /// Sidecar spawn helper: on Windows never flash a console window (user
 /// report — picking a search track flashed cmd.exe). CREATE_NO_WINDOW.
 pub fn sidecar_command(path: &std::path::Path) -> Command {
+    #[cfg_attr(not(windows), allow(unused_mut))]
     let mut cmd = Command::new(path);
     #[cfg(windows)]
     {
