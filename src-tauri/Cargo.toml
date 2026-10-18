@@ -45,3 +45,8 @@ lto = true
 opt-level = 3
 panic = "abort"
 strip = true
+
+# P18.1: the unstripped debug .so is 248 MB — strip debuginfo (symbols kept)
+# so the device debug APK is installable; behavior unchanged.
+[profile.dev]
+strip = "debuginfo"

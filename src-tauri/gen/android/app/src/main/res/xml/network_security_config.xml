@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- P18.1: the loopback server (Invariant 1) runs on http://127.0.0.1 — allow
+     cleartext ONLY to loopback so release builds keep working without opening
+     general cleartext. Overrides android:usesCleartextTraffic when present. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>
