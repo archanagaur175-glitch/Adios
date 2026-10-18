@@ -11,6 +11,7 @@ import {
   setElementGain,
   setMasterVolume,
 } from "./graph";
+import { playWithRetry } from "./playRetry";
 import { recoverMediaError } from "./reresolve";
 
 /** Two <audio> A/B elements (crossOrigin="anonymous") on the shared graph.
@@ -160,7 +161,7 @@ class PlayerEngine {
       if (graph.ctx.state === "suspended") await graph.ctx.resume().catch(() => {});
       const { volume, muted } = usePlayerStore.getState();
       setMasterVolume(volume, muted);
-      await el.play();
+      await playWithRetry(el);
     } catch (error) {
       console.error("[engine] play() rejected:", error);
       if (inTauri) void emit("smoke", { msg: `play() rejected: ${String(error)}` });
