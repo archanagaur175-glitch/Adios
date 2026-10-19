@@ -14,10 +14,8 @@ import {
 import { playWithRetry } from "./playRetry";
 import { recoverMediaError } from "./reresolve";
 
-/** Two <audio> A/B elements (crossOrigin="anonymous") on the shared graph.
-    Store is the source of truth. Gapless: preload next on the inactive
-    element, swap on ended (crossfadeMs=0, D3); crossfadeMs>0 runs an
-    equal-power fade via CrossfadeController. */
+/** Two <audio> A/B elements (crossOrigin="anonymous") on the shared graph;
+    store is source of truth. Gapless preload+swap vs crossfadeMs>0 fade. */
 
 class PlayerEngine {
   private els: [HTMLAudioElement, HTMLAudioElement] | null = null;
@@ -142,6 +140,8 @@ class PlayerEngine {
         els[1 - this.active].pause();
       }
       if (el.src !== url) el.src = url;
+      // Promoted from preload: metadata already fired while inactive, so re-sync the total.
+      if (Number.isFinite(el.duration) && el.duration > 0) usePlayerStore.getState().setDuration(el.duration);
       const inactive = els[1 - this.active];
       if (!inactive.paused) inactive.pause();
       if (usePlayerStore.getState().isPlaying) await this.playEl(el);
