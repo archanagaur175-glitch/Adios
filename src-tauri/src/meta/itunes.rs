@@ -90,7 +90,7 @@ pub struct ReqwestItTransport {
 
 impl Default for ReqwestItTransport {
     fn default() -> Self {
-        Self { http: reqwest::Client::new() }
+        Self { http: crate::net::http_client() }
     }
 }
 

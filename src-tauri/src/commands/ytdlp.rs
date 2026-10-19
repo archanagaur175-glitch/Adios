@@ -34,7 +34,7 @@ pub async fn update_ytdlp(
     )
     .map_err(|e| e.to_string())?;
 
-    let client = reqwest::Client::new();
+    let client = crate::net::http_client();
     let res = client
         .get(RELEASE_URL)
         .send()

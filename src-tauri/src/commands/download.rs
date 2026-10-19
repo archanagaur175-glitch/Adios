@@ -36,7 +36,7 @@ async fn fetch_to_cache(
     track_id: i64,
 ) -> Result<(u64, String), String> {
     emit_progress(app, track_id, 0, None).await;
-    let res = reqwest::Client::new()
+    let res = crate::net::http_client()
         .get(url)
         .header(reqwest::header::RANGE, "bytes=0-")
         .send()

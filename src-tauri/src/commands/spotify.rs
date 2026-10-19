@@ -6,7 +6,7 @@
 pub async fn spotify_fetch_playlist(
     url: String,
 ) -> Result<crate::meta::spotify_embed::SpotifyPlaylistOut, String> {
-    let client = reqwest::Client::new();
+    let client = crate::net::http_client();
     crate::meta::spotify_embed::fetch_full_playlist(
         &client,
         &crate::meta::spotify_embed::EmbedBases::prod(),

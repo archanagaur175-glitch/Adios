@@ -104,7 +104,7 @@ pub struct CoverArtClient {
 impl Default for CoverArtClient {
     fn default() -> Self {
         Self {
-            http: reqwest::Client::new(),
+            http: crate::net::http_client(),
         }
     }
 }

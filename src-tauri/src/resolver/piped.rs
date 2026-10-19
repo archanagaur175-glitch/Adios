@@ -22,7 +22,7 @@ impl PipedResolver {
     pub fn new(db: SharedDb) -> Self {
         Self {
             db,
-            client: reqwest::Client::new(),
+            client: crate::net::http_client(),
         }
     }
 

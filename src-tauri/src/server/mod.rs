@@ -90,7 +90,7 @@ pub fn start(
             let state = Arc::new(ServerState {
                 token: token_for_server,
                 port,
-                client: reqwest::Client::new(),
+                client: crate::net::http_client(),
                 db,
                 cache_dir,
                 chain,

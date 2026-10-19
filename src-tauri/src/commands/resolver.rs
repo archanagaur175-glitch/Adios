@@ -80,7 +80,7 @@ pub async fn test_instance(url: String) -> Result<InstanceHealth, String> {
         });
     }
     let started = Instant::now();
-    let client = reqwest::Client::new();
+    let client = crate::net::http_client();
     match probe(&client, &base).await {
         Some(flavor) => Ok(InstanceHealth {
             ok: true,

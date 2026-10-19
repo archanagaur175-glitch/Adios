@@ -1,6 +1,7 @@
 mod commands;
 mod db;
 mod meta;
+mod net;
 mod resolver;
 mod scan;
 mod server;
