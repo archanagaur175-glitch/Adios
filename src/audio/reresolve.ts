@@ -5,7 +5,7 @@
     patch the track URL in memory, and swap the element source back in at
     the last position. A second failure surfaces an error toast. */
 import { trackMediaUrl } from "@/lib/api";
-import { resolveQuery } from "@/lib/resolverApi";
+import { resolveOnline } from "@/lib/resolverApi";
 import { useLibraryStore } from "@/store/libraryStore";
 import { usePlayerStore } from "@/store/playerStore";
 import { useUiStore } from "@/store/uiStore";
@@ -37,7 +37,7 @@ async function reResolveTrack(trackId: number): Promise<boolean> {
 
   let candidate;
   try {
-    candidate = await resolveQuery({
+    candidate = await resolveOnline({
       artist: track.artist,
       title: track.title,
       album: track.album,

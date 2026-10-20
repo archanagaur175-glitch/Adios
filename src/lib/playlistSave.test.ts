@@ -15,6 +15,7 @@ vi.mock("@/lib/playlistApi", () => ({
 }));
 vi.mock("@/lib/resolverApi", () => ({
   resolveQuery: vi.fn(),
+  resolveOnline: vi.fn(),
   resolveBatch: vi.fn(),
 }));
 vi.mock("@/lib/onlinePlay", async (importOriginal) => {

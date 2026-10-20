@@ -1,6 +1,6 @@
 import { addStreamTrack } from "@/lib/onlineApi";
 import { identityId, pickKey, type OnlinePick } from "@/lib/onlinePick";
-import { resolveQuery, type Candidate } from "@/lib/resolverApi";
+import { resolveOnline, type Candidate } from "@/lib/resolverApi";
 import { addPlaylistTrack } from "@/lib/playlistApi";
 import { useLibraryStore } from "@/store/libraryStore";
 import { usePlayerStore } from "@/store/playerStore";
@@ -31,7 +31,8 @@ const inflight = new Map<string, Promise<Candidate | null>>();
     flight's fallback leg calls it directly (re-entering `resolveOnlinePick`
     there would await its own reserved entry = deadlock). */
 export async function runChain(pick: OnlinePick): Promise<Candidate | null> {
-  const candidate = await resolveQuery({
+  // P19.3: resolveOnline routes Android → Kotlin plugin, desktop → chain.
+  const candidate = await resolveOnline({
     artist: pick.artist ?? "",
     title: pick.title,
     durationMs: pick.durationMs ?? null,

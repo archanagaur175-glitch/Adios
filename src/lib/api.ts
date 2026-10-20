@@ -6,7 +6,8 @@ import type { EvictStats, LyricsPayload, SearchPage, Track } from "@/lib/types";
 export const inTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 /** True on the Android WebView — desktop-only features (yt-dlp updater,
-    native dialogs) are hidden there; online play is Piped-only (D19). */
+    native dialogs) are hidden there; online play routes through the Kotlin
+    yt-dlp plugin (P19/D33, resolverApi.resolveOnline). */
 export const isAndroid = (): boolean =>
   typeof navigator !== "undefined" && navigator.userAgent.includes("Android");
 

@@ -5,11 +5,12 @@ import type { OnlinePick } from "@/lib/onlinePick";
 /** P20.2 (D34): chunking/order, ≤3 concurrency, latch + session latch,
     cache seeding, per-item chain fallback, prime/inflight skip. Module state
     (latch + prime caches) is reset per test via vi.resetModules + dynamic
-    imports; resolverApi is mocked so resolveQuery/resolveBatch are the only
+    imports; resolverApi is mocked so resolveOnline/resolveBatch are the only
     network surface. */
 
 vi.mock("@/lib/resolverApi", () => ({
   resolveQuery: vi.fn(),
+  resolveOnline: vi.fn(),
   resolveBatch: vi.fn(),
 }));
 
@@ -58,7 +59,7 @@ describe("resolveManyPicks chunking", () => {
 
     const resolved = await play.resolveOnlinePick(picks[0]);
     expect(resolved?.urlOrPath).toBe("url:Song 0");
-    expect(api.resolveQuery).not.toHaveBeenCalled();
+    expect(api.resolveOnline).not.toHaveBeenCalled();
   });
 
   it("never runs more than 3 chunks concurrently", async () => {
@@ -106,7 +107,7 @@ describe("resolveManyPicks chunking", () => {
     vi.mocked(api.resolveBatch).mockClear();
 
     // d parked on a hanging chain prime → in-flight.
-    vi.mocked(api.resolveQuery).mockReturnValue(new Promise<Candidate | null>(() => {}));
+    vi.mocked(api.resolveOnline).mockReturnValue(new Promise<Candidate | null>(() => {}));
     play.primeOnlinePick(d);
     await tick();
 
@@ -125,7 +126,7 @@ describe("latch behavior", () => {
       latched: true,
       items: Array.from({ length: 8 }, () => ({ ok: false, candidate: null, error: "spawn" })),
     });
-    vi.mocked(api.resolveQuery).mockImplementation(async (q) => cand(`chain:${q.title}`));
+    vi.mocked(api.resolveOnline).mockImplementation(async (q) => cand(`chain:${q.title}`));
     const picks = Array.from({ length: 30 }, (_, i) => pick(i));
 
     batch.resolveManyPicks(picks);
@@ -136,7 +137,7 @@ describe("latch behavior", () => {
     // A pick from queued chunk 5+ resolves through the single chain.
     const chained = await play.resolveOnlinePick(picks[20]);
     expect(chained?.urlOrPath).toBe("url:chain:Song 20");
-    expect(api.resolveQuery).toHaveBeenCalledWith(
+    expect(api.resolveOnline).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Song 20" }),
     );
 
@@ -151,18 +152,18 @@ describe("latch behavior", () => {
       latched: false,
       items: [{ ok: false, candidate: null, error: "no usable video" }],
     });
-    vi.mocked(api.resolveQuery).mockResolvedValue(cand("chain-rescued"));
+    vi.mocked(api.resolveOnline).mockResolvedValue(cand("chain-rescued"));
 
     batch.resolveManyPicks([pick(30)]);
     await tick();
     const got = await play.resolveOnlinePick(pick(30));
     expect(got?.urlOrPath).toBe("url:chain-rescued");
-    expect(api.resolveQuery).toHaveBeenCalledTimes(1);
+    expect(api.resolveOnline).toHaveBeenCalledTimes(1);
   });
 
   it("a rejected invoke trips the latch and everything chains from there", async () => {
     vi.mocked(api.resolveBatch).mockRejectedValue(new Error("invoke boom"));
-    vi.mocked(api.resolveQuery).mockResolvedValue(cand("chain"));
+    vi.mocked(api.resolveOnline).mockResolvedValue(cand("chain"));
 
     batch.resolveManyPicks([pick(40)]);
     await tick();
@@ -189,6 +190,6 @@ describe("single-flight integration", () => {
     const [x, y] = await Promise.all([play.resolveOnlinePick(p), play.resolveOnlinePick(p)]);
     expect(x?.urlOrPath).toBe("url:Song 60");
     expect(y).toBe(x);
-    expect(api.resolveQuery).not.toHaveBeenCalled();
+    expect(api.resolveOnline).not.toHaveBeenCalled();
   });
 });

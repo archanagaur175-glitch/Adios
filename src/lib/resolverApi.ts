@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { inTauri } from "@/lib/api";
+import { inTauri, isAndroid } from "@/lib/api";
 
 /** Resolver commands (P4.4): chain resolution, health, instance testing,
     and the yt-dlp updater. */
@@ -40,6 +40,36 @@ export async function resolveQuery(query: {
     album: query.album ?? null,
     durationMs: query.durationMs ?? null,
   });
+}
+
+/** P19.3/D33: Android resolve via the Kotlin yt-dlp plugin — same
+    Candidate shape as the Rust chain so callers stay platform-agnostic. */
+export async function resolveAndroid(query: {
+  artist: string;
+  title: string;
+  album?: string | null;
+  durationMs?: number | null;
+}): Promise<Candidate | null> {
+  if (!inTauri) return null;
+  return invoke<Candidate>("resolve_android", {
+    artist: query.artist,
+    title: query.title,
+    album: query.album ?? null,
+    durationMs: query.durationMs ?? null,
+  });
+}
+
+/** P19.3: single routing choke point — Android → Kotlin plugin, every
+    other platform → proven Rust chain. Lives here (not in onlinePlay) so
+    prime/inflight/batch-fallback all share it and desktop behavior is
+    byte-identical (isAndroid() is false there). */
+export async function resolveOnline(query: {
+  artist: string;
+  title: string;
+  album?: string | null;
+  durationMs?: number | null;
+}): Promise<Candidate | null> {
+  return isAndroid() ? resolveAndroid(query) : resolveQuery(query);
 }
 
 /** One slot of a `resolve_batch` response (index-aligned with the request). */
