@@ -3,6 +3,7 @@
 
 pub mod cache;
 pub mod local;
+pub mod mobile;
 pub mod piped;
 pub mod piped_api;
 pub mod piped_formats;

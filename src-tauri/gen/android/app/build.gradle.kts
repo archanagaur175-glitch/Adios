@@ -24,6 +24,9 @@ android {
         targetSdk = 37
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
+        // P19/D33: ship only the device ABI — the yt-dlp library's jniLibs
+        // (python/quickjs) exist per-ABI and would ~4x the APK otherwise.
+        ndk { abiFilters += "arm64-v8a" }
     }
     buildTypes {
         getByName("debug") {
@@ -69,6 +72,8 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.10.1")
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.lifecycle:lifecycle-process:2.10.0")
+    // P19/D33: in-process yt-dlp (python + lazy extractors bundled).
+    implementation("io.github.junkfood02.youtubedl-android:library:0.18.1")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.4")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")
