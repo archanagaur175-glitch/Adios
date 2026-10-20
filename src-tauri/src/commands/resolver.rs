@@ -8,6 +8,7 @@ use tauri::State;
 
 use crate::db::DbState;
 use crate::resolver::piped_api::probe;
+use crate::resolver::ytdlp_batch::{run_batch, BatchSlot};
 use crate::resolver::{cache, Candidate, HealthStatus, Query, SharedChain, SharedTable};
 
 #[derive(Debug, Serialize)]
@@ -102,4 +103,51 @@ pub async fn test_instance(url: String) -> Result<InstanceHealth, String> {
                 .to_owned(),
         }),
     }
+}
+
+/// P20/D34: batched yt-dlp resolution — ONE process per chunk (import save
+/// engine). Write-back mirrors `resolve_query` per hit (resolution table +
+/// meta_cache); a cache-write failure keeps the candidate but logs — for an
+/// import, a playable hit beats bookkeeping. `latched` = spawn failed, so
+/// the FE stops batching and falls back to the per-pick chain.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BatchItem {
+    pub ok: bool,
+    pub candidate: Option<Candidate>,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BatchOutcomeOut {
+    pub latched: bool,
+    pub items: Vec<BatchItem>,
+}
+
+#[tauri::command]
+pub async fn resolve_batch(
+    db: State<'_, DbState>,
+    table: State<'_, SharedTable>,
+    bin: State<'_, crate::resolver::ytdlp::BinHandle>,
+    queries: Vec<Query>,
+) -> Result<BatchOutcomeOut, String> {
+    let path = bin.read().await.clone();
+    let outcome = run_batch(&path, &queries).await;
+    let mut items = Vec::with_capacity(queries.len());
+    for (q, slot) in queries.iter().zip(outcome.slots) {
+        items.push(match slot {
+            BatchSlot::Hit(candidate) => {
+                if cache::is_remote_url(&candidate.url_or_path) {
+                    table.register(&candidate.url_or_path, q);
+                    if let Err(e) = cache::put_resolution(&db.shared(), q, &candidate) {
+                        println!("[resolver] batch write-back skipped: {e}");
+                    }
+                }
+                BatchItem { ok: true, candidate: Some(candidate), error: None }
+            }
+            BatchSlot::Miss(msg) => BatchItem { ok: false, candidate: None, error: Some(msg) },
+        });
+    }
+    Ok(BatchOutcomeOut { latched: outcome.latched, items })
 }

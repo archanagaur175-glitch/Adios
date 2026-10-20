@@ -161,6 +161,7 @@ pub fn run() {
             commands::scan::scan_folder,
             commands::scan::list_directory,
             commands::resolver::resolve_query,
+            commands::resolver::resolve_batch,
             commands::resolver::resolver_health,
             commands::resolver::test_instance,
             commands::ytdlp::update_ytdlp,

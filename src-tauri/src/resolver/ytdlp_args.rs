@@ -29,11 +29,18 @@ pub fn strip_parentheticals(s: &str) -> String {
     out.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-/// Pure arg builder — the spike command and unit tests share this.
-pub fn build_args(query: &Query) -> Vec<String> {
+/// P20/D34: the search term as yt-dlp echoes it back in a batch doc's `id`
+/// (`"<artist> - <title>"` after the `ytsearch3:` prefix) — shared by the
+/// single builder and the batch mapper.
+pub fn search_term(query: &Query) -> String {
     let artist = strip_parentheticals(&query.artist);
     let title = strip_parentheticals(&query.title);
-    let search = format!("ytsearch{SEARCH_COUNT}:{artist} - {title}");
+    format!("{artist} - {title}")
+}
+
+/// Pure arg builder — the spike command and unit tests share this.
+pub fn build_args(query: &Query) -> Vec<String> {
+    let search = format!("ytsearch{SEARCH_COUNT}:{}", search_term(query));
     vec![
         "--no-playlist".to_owned(),
         "--no-warnings".to_owned(),

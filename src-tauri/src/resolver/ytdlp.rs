@@ -78,50 +78,54 @@ impl YtDlpResolver {
         }
         let stdout = String::from_utf8_lossy(&output.stdout);
         let entries = pick_entries(&stdout);
-        if entries.is_empty() {
-            return Err(ResolveError::Internal("yt-dlp returned no results".to_owned()));
-        }
+        pick_candidate(entries, query)
+    }
+}
 
-        // P9.7: try each result in relevance order; first score() accept wins
-        // (video #1 being deleted/region-blocked no longer fails the resolve).
-        let mut first_reject: Option<String> = None;
-        for entry in entries {
-            let title = entry.title.clone().unwrap_or_default();
-            let artist = entry
-                .channel
-                .clone()
-                .or_else(|| entry.uploader.clone())
-                .unwrap_or_default();
-            let duration_ms = entry.duration.map(|secs| (secs * 1000.0).round() as i64);
-            match score(query, &title, &artist, duration_ms) {
-                ScoreOutcome::Reject(reason) => {
-                    if first_reject.is_none() {
-                        first_reject = Some(format!("{reason} (\"{title}\")"));
-                    }
-                    println!("[resolver] ytdlp reject: {reason} (\"{title}\")");
+/// P9.7: try each result in relevance order; first score() accept wins
+/// (video #1 being deleted/region-blocked no longer fails the resolve).
+/// P20: extracted from `resolve_async` so the batch path reuses it verbatim.
+pub fn pick_candidate(entries: Vec<Entry>, query: &Query) -> Result<Candidate, ResolveError> {
+    if entries.is_empty() {
+        return Err(ResolveError::Internal("yt-dlp returned no results".to_owned()));
+    }
+    let mut first_reject: Option<String> = None;
+    for entry in entries {
+        let title = entry.title.clone().unwrap_or_default();
+        let artist = entry
+            .channel
+            .clone()
+            .or_else(|| entry.uploader.clone())
+            .unwrap_or_default();
+        let duration_ms = entry.duration.map(|secs| (secs * 1000.0).round() as i64);
+        match score(query, &title, &artist, duration_ms) {
+            ScoreOutcome::Reject(reason) => {
+                if first_reject.is_none() {
+                    first_reject = Some(format!("{reason} (\"{title}\")"));
                 }
-                ScoreOutcome::Accept { confidence } => {
-                    // Prefer the extracted stream URL; fall back to the page
-                    // URL so a later step can re-extract if it expired.
-                    let url = entry
-                        .url
-                        .or(entry.webpage_url)
-                        .ok_or(ResolveError::NotFound)?;
-                    return Ok(Candidate {
-                        mime: entry.ext.as_deref().map(mime_for_audio_ext),
-                        url_or_path: url,
-                        expires_at: None, // googlevideo expiry is URL-param based (P4.4 re-resolves)
-                        source: "ytdlp".to_owned(),
-                        confidence,
-                    });
-                }
+                println!("[resolver] ytdlp reject: {reason} (\"{title}\")");
+            }
+            ScoreOutcome::Accept { confidence } => {
+                // Prefer the extracted stream URL; fall back to the page
+                // URL so a later step can re-extract if it expired.
+                let url = entry
+                    .url
+                    .or(entry.webpage_url)
+                    .ok_or(ResolveError::NotFound)?;
+                return Ok(Candidate {
+                    mime: entry.ext.as_deref().map(mime_for_audio_ext),
+                    url_or_path: url,
+                    expires_at: None, // googlevideo expiry is URL-param based (P4.4 re-resolves)
+                    source: "ytdlp".to_owned(),
+                    confidence,
+                });
             }
         }
-        Err(ResolveError::Internal(format!(
-            "no usable YouTube video ({})",
-            first_reject.unwrap_or_else(|| "unrated results".to_owned())
-        )))
     }
+    Err(ResolveError::Internal(format!(
+        "no usable YouTube video ({})",
+        first_reject.unwrap_or_else(|| "unrated results".to_owned())
+    )))
 }
 
 #[derive(Debug, Deserialize)]
