@@ -36,8 +36,15 @@ android {
             isMinifyEnabled = false
         }
         getByName("release") {
+            // P19/D33: R8 minification is OFF. youtubedl-android does deep
+            // reflection into its bundled python/jackson/commons-io deps
+            // (ZipUtils.unzip -> static init chain); R8 class-merging kept
+            // producing "class <obfuscated> is not a concrete class" crashes
+            // on first init even with explicit keep rules (gate195). This is
+            // a personal-use app — the python/quickjs .so files already
+            // dominate the APK, so Java-side shrinking isn't worth the risk.
             optimization {
-               enable = true
+               enable = false
             }
             proguardFiles(
                 *fileTree(".") {
@@ -53,6 +60,15 @@ android {
     }
     buildFeatures {
         buildConfig = true
+    }
+    // P19/D33: youtubedl-android loads python/quickjs/ffmpeg .so files from
+    // nativeLibraryDir (file I/O) — extraction is mandatory. AGP 9 ignores
+    // the manifest's extractNativeLibs attribute; this is the authoritative
+    // switch (README's requirement under the modern DSL).
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 }
 

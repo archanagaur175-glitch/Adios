@@ -55,7 +55,10 @@ class YtDlpPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
-    /** 19.1 bridge proof: lazy-init the library once, report version. */
+    /** 19.1 bridge proof: lazy-init the library once, report version.
+     *  catch Throwable: reflective bootstrap failures are Errors
+     *  (ExceptionInInitializerError/NoClassDefFoundError), not Exceptions —
+     *  they must reject the invoke, never kill the process (gate195). */
     @Command
     fun ping(invoke: Invoke) {
         scope.launch {
@@ -64,9 +67,10 @@ class YtDlpPlugin(private val activity: Activity) : Plugin(activity) {
                 ensureInit()
                 ret.put("ok", true)
                 ret.put("version", YoutubeDL.getInstance().versionName(activity))
-            } catch (e: Exception) {
+            } catch (t: Throwable) {
+                Log.e(TAG, "ping failed", t)
                 ret.put("ok", false)
-                ret.put("error", e.message ?: e.javaClass.simpleName)
+                ret.put("error", t.message ?: t.javaClass.simpleName)
             }
             invoke.resolve(ret)
         }
@@ -101,9 +105,9 @@ class YtDlpPlugin(private val activity: Activity) : Plugin(activity) {
                 ret.put("source", "ytdlp")
                 Log.i(TAG, "resolve hit conf=${hit.confidence} \"${hit.title}\"")
                 invoke.resolve(ret)
-            } catch (e: Exception) {
-                Log.w(TAG, "resolve failed: ${e.message}")
-                invoke.reject(e.message ?: "resolve failed")
+            } catch (t: Throwable) {
+                Log.e(TAG, "resolve failed", t)
+                invoke.reject(t.message ?: "resolve failed")
             }
         }
     }
@@ -137,15 +141,15 @@ class YtDlpPlugin(private val activity: Activity) : Plugin(activity) {
                 ensureUpdated()
                 val response = YoutubeDL.getInstance().execute(buildBatchRequest(queries))
                 if (response.exitCode != 0) {
-                    Log.w(TAG, "batch exited ${response.exitCode} with ${response.out.length()} out bytes (kept)")
+                    Log.w(TAG, "batch exited ${response.exitCode} with ${response.out.length} out bytes (kept)")
                 }
                 ret.put("latched", false)
                 ret.put("items", parseBatchOut(response.out, queries))
-                Log.i(TAG, "resolveBatch: ${queries.size} queries -> ${response.out.length()} out bytes")
-            } catch (e: Exception) {
-                Log.w(TAG, "resolveBatch failed: ${e.message}")
+                Log.i(TAG, "resolveBatch: ${queries.size} queries -> ${response.out.length} out bytes")
+            } catch (t: Throwable) {
+                Log.e(TAG, "resolveBatch failed", t)
                 ret.put("latched", true)
-                ret.put("items", missItems(queries, e.message ?: "batch failed"))
+                ret.put("items", missItems(queries, t.message ?: "batch failed"))
             }
             invoke.resolve(ret)
         }
