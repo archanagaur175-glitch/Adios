@@ -41,21 +41,23 @@ pub fn run() {
             println!("[db] opened at {}", data_dir.join("adios.db").display());
 
             // Resolver chain (Invariant 2): LocalFile → Cache → yt-dlp →
-            // Piped/Invidious. yt-dlp binary: env override > setting > PATH.
-            let ytdlp_path = std::env::var("ADIOS_YTDLP")
-                .ok()
-                .or_else(|| {
-                    shared_db.lock().ok().and_then(|conn| {
-                        conn.query_row(
-                            "SELECT value_json FROM settings WHERE key = 'ytdlpPath'",
-                            [],
-                            |row| row.get::<_, String>(0),
-                        )
-                        .ok()
-                    }).and_then(|raw| serde_json::from_str::<String>(&raw).ok())
-                })
-                .map(std::path::PathBuf::from)
-                .unwrap_or_else(|| std::path::PathBuf::from("yt-dlp"));
+            // Piped/Invidious. yt-dlp binary slot (P22/D35): env override >
+            // settings Update copy > installer-bundled copy > PATH.
+            let ytdlp_path = resolver::ytdlp_resolve::startup_path(
+                std::env::var("ADIOS_YTDLP").ok(),
+                shared_db.lock().ok().and_then(|conn| {
+                    conn.query_row(
+                        "SELECT value_json FROM settings WHERE key = 'ytdlpPath'",
+                        [],
+                        |row| row.get::<_, String>(0),
+                    )
+                    .ok()
+                }),
+                app.path()
+                    .resolve("bin/yt-dlp.exe", tauri::path::BaseDirectory::Resource)
+                    .ok(),
+            );
+            println!("[ytdlp] binary slot -> {}", ytdlp_path.display());
             let bin = resolver::ytdlp::bin_handle(ytdlp_path);
             app.manage(bin.clone());
 

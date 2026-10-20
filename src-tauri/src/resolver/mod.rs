@@ -13,6 +13,7 @@ pub use table::{ResolutionTable, SharedTable};
 pub mod ytdlp;
 pub mod ytdlp_args;
 pub mod ytdlp_batch;
+pub mod ytdlp_resolve;
 
 #[cfg(test)]
 mod tests;
@@ -28,6 +29,9 @@ mod ytdlp_tests;
 
 #[cfg(test)]
 mod ytdlp_batch_tests;
+
+#[cfg(test)]
+mod ytdlp_resolve_tests;
 
 #[cfg(test)]
 mod piped_tests;
