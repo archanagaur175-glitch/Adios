@@ -86,7 +86,10 @@ export interface BatchOutcome {
   items: BatchItem[];
 }
 
-/** P20.2: ONE yt-dlp process for up to 8 queries (import save engine). */
+/** P20.2: ONE yt-dlp process for up to 8 queries (import save engine).
+ *  P19.4: Android routes to the Kotlin plugin's batch command — same
+ *  `{latched, items}` shape, so chunk pump/latch logic stays platform-blind
+ *  (plugin/process failure → `latched` → sequential per-pick fallback). */
 export async function resolveBatch(
   queries: Array<{
     artist: string;
@@ -101,7 +104,8 @@ export async function resolveBatch(
       items: queries.map(() => ({ ok: false, candidate: null, error: "not in Tauri" })),
     };
   }
-  return invoke<BatchOutcome>("resolve_batch", {
+  const cmd = isAndroid() ? "resolve_android_batch" : "resolve_batch";
+  return invoke<BatchOutcome>(cmd, {
     queries: queries.map((q) => ({
       artist: q.artist,
       title: q.title,

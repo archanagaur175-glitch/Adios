@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Candidate } from "@/lib/resolverApi";
 
-/** P19.3 (D33): resolve routing — Android picks go to the Kotlin yt-dlp
-    plugin (`resolve_android`), everything else keeps the Rust chain
-    (`resolve_query`). invoke + isAndroid are mocked; adapter must pass the
-    query through unchanged and keep the Candidate shape. */
+/** P19.3/P19.4 (D33): resolve routing — Android picks go to the Kotlin
+    yt-dlp plugin (`resolve_android` / `resolve_android_batch`), everything
+    else keeps the Rust chain (`resolve_query` / `resolve_batch`). invoke +
+    isAndroid are mocked; the adapter must pass queries through unchanged,
+    keep the Candidate shape, and forward the batch latch as-is. */
 
 const invokeMock = vi.hoisted(() => vi.fn());
 const isAndroidMock = vi.hoisted(() => vi.fn(() => false));
@@ -79,5 +80,45 @@ describe("resolveOnline routing (P19.3)", () => {
   it("resolveAndroid rejects when invoke errors (callers toast on catch)", async () => {
     invokeMock.mockRejectedValue(new Error("plugin dead"));
     await expect(api.resolveAndroid({ artist: "A", title: "T" })).rejects.toThrow("plugin dead");
+  });
+});
+
+describe("resolveBatch routing (P19.4)", () => {
+  const ok = { latched: false, items: [{ ok: true, candidate: cand, error: null }] };
+
+  it("desktop invokes resolve_batch with the {queries} wrapper", async () => {
+    invokeMock.mockResolvedValue(ok);
+
+    const out = await api.resolveBatch([{ artist: "A", title: "T", durationMs: 180_000 }]);
+
+    expect(invokeMock).toHaveBeenCalledWith("resolve_batch", {
+      queries: [{ artist: "A", title: "T", album: null, durationMs: 180_000 }],
+    });
+    expect(out).toEqual(ok);
+  });
+
+  it("Android invokes resolve_android_batch with the identical payload", async () => {
+    isAndroidMock.mockReturnValue(true);
+    invokeMock.mockResolvedValue(ok);
+
+    await api.resolveBatch([{ artist: "A", title: "T" }]);
+
+    expect(invokeMock).toHaveBeenCalledWith("resolve_android_batch", {
+      queries: [{ artist: "A", title: "T", album: null, durationMs: null }],
+    });
+    expect(invokeMock).not.toHaveBeenCalledWith("resolve_batch", expect.anything());
+  });
+
+  it("passes the plugin latch through untouched (sequential fallback engages)", async () => {
+    isAndroidMock.mockReturnValue(true);
+    invokeMock.mockResolvedValue({
+      latched: true,
+      items: [{ ok: false, candidate: null, error: "plugin init failed" }],
+    });
+
+    const out = await api.resolveBatch([{ artist: "A", title: "T" }]);
+
+    expect(out.latched).toBe(true);
+    expect(out.items[0]?.ok).toBe(false);
   });
 });

@@ -36,6 +36,7 @@ macro_rules! adios_invoke_handler {
             commands::resolver::test_instance,
             commands::ytdlp::update_ytdlp,
             commands::mobile::resolve_android,
+            commands::mobile::resolve_android_batch,
             commands::mobile::resolve_android_ping,
             commands::search::search_metadata,
             commands::search::search_itunes,

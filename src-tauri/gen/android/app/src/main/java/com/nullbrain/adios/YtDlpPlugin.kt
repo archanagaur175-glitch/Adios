@@ -8,12 +8,12 @@ import app.tauri.plugin.Invoke
 import app.tauri.plugin.JSObject
 import app.tauri.plugin.Plugin
 import com.yausername.youtubedl_android.YoutubeDL
-import com.yausername.youtubedl_android.YoutubeDLException
 import com.yausername.youtubedl_android.YoutubeDLRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import org.json.JSONObject
 
 private const val TAG = "YtDlpPlugin"
@@ -93,7 +93,7 @@ class YtDlpPlugin(private val activity: Activity) : Plugin(activity) {
                     .addOption("--dump-single-json")
                     .addOption("-f", FORMAT_SELECTOR)
                 val response = YoutubeDL.getInstance().execute(request)
-                val hit = pickCandidate(response.out, artist, title, durationMs)
+                val hit = pickFromDoc(JSONObject(response.out), artist, title, durationMs)
                 val ret = JSObject()
                 ret.put("url", hit.url)
                 hit.mime?.let { ret.put("mime", it) }
@@ -108,38 +108,46 @@ class YtDlpPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
-    private data class Hit(val url: String, val mime: String?, val title: String, val confidence: Float)
-
-    /** Mirrors pick_candidate (ytdlp.rs): relevance order, first accept wins. */
-    private fun pickCandidate(
-        outJson: String,
-        queryArtist: String,
-        queryTitle: String,
-        queryDurationMs: Long?,
-    ): Hit {
-        val root = JSONObject(outJson)
-        val entriesArr = root.optJSONArray("entries")
-        val entries = if (entriesArr != null) {
-            (0 until entriesArr.length()).mapNotNull { entriesArr.optJSONObject(it) }
-        } else {
-            listOf(root)
+    /** P19.4: ONE python process per chunk — desktop resolve_batch parity
+     *  (multi-doc stdout → doc↔query mapping → shared score loop per query).
+     *  `latched: true` = the plugin or process could not run; the FE then
+     *  stops batching and every pick falls back to the sequential single
+     *  query path (today's behavior, preserved). */
+    @Command
+    fun resolveBatch(invoke: Invoke) {
+        val arr = invoke.getArgs().optJSONArray("queries") ?: JSONArray()
+        val queries = (0 until arr.length()).map { i ->
+            val o = arr.optJSONObject(i) ?: JSONObject()
+            BatchQuery(
+                o.optString("artist", ""),
+                o.optString("title", ""),
+                o.optLong("durationMs", -1L).takeIf { it > 0 },
+            )
         }
-        if (entries.isEmpty()) throw YoutubeDLException("yt-dlp returned no results")
-        var firstReject: String? = null
-        for (entry in entries) {
-            val entryTitle = entry.optString("title", "")
-            val entryArtist = entry.optString("channel", "").ifEmpty { entry.optString("uploader", "") }
-            val seconds = if (entry.isNull("duration")) null else entry.optDouble("duration").takeIf { !it.isNaN() }
-            val outcome = score(queryArtist, queryTitle, queryDurationMs, entryTitle, entryArtist, durationMsOf(seconds))
-            if (!outcome.accepted) {
-                if (firstReject == null) firstReject = "${outcome.reason} (\"$entryTitle\")"
-                Log.i(TAG, "reject: ${outcome.reason} (\"$entryTitle\")")
-                continue
+        scope.launch {
+            val ret = JSObject()
+            if (queries.isEmpty()) {
+                ret.put("latched", false)
+                ret.put("items", JSONArray())
+                invoke.resolve(ret)
+                return@launch
             }
-            val url = entry.optString("url", "").ifEmpty { entry.optString("webpage_url", "") }
-            if (url.isEmpty()) throw YoutubeDLException("accepted result has no url")
-            return Hit(url, mimeForAudioExt(entry.optString("ext", "")), entryTitle, outcome.confidence)
+            try {
+                ensureInit()
+                ensureUpdated()
+                val response = YoutubeDL.getInstance().execute(buildBatchRequest(queries))
+                if (response.exitCode != 0) {
+                    Log.w(TAG, "batch exited ${response.exitCode} with ${response.out.length()} out bytes (kept)")
+                }
+                ret.put("latched", false)
+                ret.put("items", parseBatchOut(response.out, queries))
+                Log.i(TAG, "resolveBatch: ${queries.size} queries -> ${response.out.length()} out bytes")
+            } catch (e: Exception) {
+                Log.w(TAG, "resolveBatch failed: ${e.message}")
+                ret.put("latched", true)
+                ret.put("items", missItems(queries, e.message ?: "batch failed"))
+            }
+            invoke.resolve(ret)
         }
-        throw YoutubeDLException("no usable YouTube video (${firstReject ?: "unrated results"})")
     }
 }
