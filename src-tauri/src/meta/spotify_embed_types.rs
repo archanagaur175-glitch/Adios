@@ -64,11 +64,37 @@ pub struct TrackEntity {
     /// Milliseconds.
     pub duration: Option<i64>,
     pub artists: Option<Vec<EmbedArtist>>,
+    /// P21 art source: cover variants live under here (300/64/640 px).
+    #[serde(rename = "visualIdentity")]
+    pub visual_identity: Option<VisualIdentity>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct EmbedArtist {
     pub name: Option<String>,
+}
+
+/// P21: track visual identity — colors we ignore + `image[]` covers.
+#[derive(Debug, Deserialize)]
+pub struct VisualIdentity {
+    pub image: Option<Vec<EmbedImage>>,
+}
+
+/// One cover variant; `maxHeight`/`maxWidth` pick the largest usable one.
+#[derive(Debug, Deserialize, Clone, PartialEq)]
+pub struct EmbedImage {
+    pub url: Option<String>,
+    #[serde(rename = "maxHeight")]
+    pub max_height: Option<i64>,
+    #[serde(rename = "maxWidth")]
+    pub max_width: Option<i64>,
+}
+
+/// P21: public oEmbed response (only the field we take).
+#[derive(Debug, Deserialize)]
+pub struct OEmbedResponse {
+    #[serde(rename = "thumbnail_url")]
+    pub thumbnail_url: Option<String>,
 }
 
 /// spclient playlist-v2 page (spclient.wg.spotify.com/playlist/v2/…)
@@ -97,6 +123,9 @@ pub struct SpotifyTrackOut {
     pub title: String,
     pub artist: String,
     pub duration_ms: Option<i64>,
+    /// P21: album art — track pages carry it directly, playlist-page tracks
+    /// get it from the oEmbed fill pass; None = import continues coverless.
+    pub artwork_url: Option<String>,
 }
 
 /// Full playlist fetch result (camelCase).

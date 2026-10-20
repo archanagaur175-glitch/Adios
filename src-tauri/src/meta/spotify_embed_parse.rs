@@ -50,6 +50,31 @@ pub fn track_id_from_uri(uri: &str) -> Option<&str> {
     uri.strip_prefix("spotify:track:")
 }
 
+/// P21: largest cover from `visualIdentity.image[]` (height first, then
+/// width — 640px wins over 300/64); url-less entries are ignored.
+pub fn pick_artwork(images: &[EmbedImage]) -> Option<String> {
+    images
+        .iter()
+        .filter(|i| i.url.is_some())
+        .max_by_key(|i| (i.max_height.unwrap_or(0), i.max_width.unwrap_or(0)))
+        .and_then(|i| i.url.clone())
+}
+
+/// P21: public oEmbed endpoint for one track (unencoded nested url is
+/// legal in a query and matches the live probe).
+pub fn oembed_url(base_open: &str, tid: &str) -> String {
+    format!("{base_open}/oembed?url=https://open.spotify.com/track/{tid}")
+}
+
+/// P21: oEmbed JSON → thumbnail (None = missing/blank, never a panic).
+pub fn oembed_thumbnail(body: &str) -> Option<String> {
+    let parsed: OEmbedResponse = serde_json::from_str(body).ok()?;
+    parsed
+        .thumbnail_url
+        .map(|u| u.trim().to_owned())
+        .filter(|u| !u.is_empty())
+}
+
 /// Playlist embed page → (name, first-page tracks with metadata).
 pub fn playlist_from_html(html: &str) -> Result<(String, Vec<SpotifyTrackOut>), String> {
     let data = extract_next_data(html).ok_or("Spotify embed page had no data — the import endpoint may have changed")?;
@@ -80,6 +105,8 @@ pub fn playlist_from_html(html: &str) -> Result<(String, Vec<SpotifyTrackOut>), 
                 title: t.title.unwrap_or_default(),
                 artist: t.subtitle.unwrap_or_default(),
                 duration_ms: t.duration,
+                // Playlist pages carry no art — the oEmbed fill pass runs later.
+                artwork_url: None,
             })
         })
         .collect();
@@ -109,11 +136,17 @@ pub fn track_from_html(html: &str) -> Result<SpotifyTrackOut, String> {
         .filter_map(|a| a.name)
         .find(|n| !n.trim().is_empty())
         .unwrap_or_default();
+    let artwork_url = entity
+        .visual_identity
+        .and_then(|v| v.image)
+        .map(|images| pick_artwork(&images))
+        .unwrap_or(None);
     Ok(SpotifyTrackOut {
         uri,
         title: entity.name.unwrap_or_default(),
         artist,
         duration_ms: entity.duration,
+        artwork_url,
     })
 }
 

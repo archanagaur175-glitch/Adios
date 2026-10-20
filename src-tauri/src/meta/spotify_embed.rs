@@ -81,6 +81,24 @@ pub async fn fetch_track_meta(
     track_from_html(&html)
 }
 
+/// P21: album art for one track via the PUBLIC oEmbed endpoint (tiny JSON —
+/// playlist pages and spclient carry no art, verified 2026-10-19). Always
+/// best-effort: any failure is None and the import continues coverless.
+pub async fn fetch_track_art(
+    client: &reqwest::Client,
+    bases: &EmbedBases,
+    uri: &str,
+) -> Option<String> {
+    let tid = track_id_from_uri(uri)?;
+    match get_text(client, &oembed_url(&bases.open, tid)).await {
+        Ok(body) => oembed_thumbnail(&body),
+        Err(e) => {
+            eprintln!("[spotify] artwork fetch failed: {e}");
+            None
+        }
+    }
+}
+
 /// Full import fetch: first 100 detailed from the playlist page, remaining
 /// uris via the token-paginated API, their metadata via track pages.
 pub async fn fetch_full_playlist(
@@ -137,6 +155,29 @@ pub async fn fetch_full_playlist(
     }
     if meta_fail > 0 {
         println!("[spotify] metadata: {meta_ok} ok, {meta_fail} skipped");
+    }
+
+    // P21: fill art for the tracks that arrived without it (playlist-page
+    // rows always; track-page rows when visualIdentity was absent) — 8
+    // concurrent oEmbed GETs, per-track degrade, never fails the import.
+    let missing: Vec<usize> = tracks
+        .iter()
+        .enumerate()
+        .filter(|(_, t)| t.artwork_url.is_none())
+        .map(|(i, _)| i)
+        .collect();
+    if !missing.is_empty() {
+        let mut art_ok = 0usize;
+        for chunk in missing.chunks(CHUNK) {
+            let futs = chunk.iter().map(|&i| fetch_track_art(client, bases, &tracks[i].uri));
+            for (slot, art) in chunk.iter().zip(futures::future::join_all(futs).await) {
+                if let Some(url) = art {
+                    tracks[*slot].artwork_url = Some(url);
+                    art_ok += 1;
+                }
+            }
+        }
+        println!("[spotify] artwork: {art_ok}/{} fetched", missing.len());
     }
     Ok(SpotifyPlaylistOut { name, total, tracks })
 }

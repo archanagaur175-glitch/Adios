@@ -10,6 +10,9 @@ export interface SpotifyTrack {
   title: string;
   artist: string;
   durationMs: number | null;
+  /** P21: album art — track-page visualIdentity or the oEmbed fill pass
+      (Rust sends null when art could not be fetched; import still runs). */
+  artworkUrl?: string | null;
 }
 
 export interface SpotifyPlaylist {
@@ -35,5 +38,6 @@ export function spotifyCandidates(pl: SpotifyPlaylist): RecCandidate[] {
       title: t.title,
       artist: t.artist,
       durationMs: t.durationMs,
+      artworkUrl: t.artworkUrl,
     }));
 }

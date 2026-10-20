@@ -13,9 +13,15 @@ describe("spotifyCandidates (P17)", () => {
     name: "List",
     total: 3,
     tracks: [
-      { uri: "spotify:track:AAAA", title: "Song", artist: "Artist", durationMs: 100000 },
+      {
+        uri: "spotify:track:AAAA",
+        title: "Song",
+        artist: "Artist",
+        durationMs: 100000,
+        artworkUrl: "https://img/art",
+      },
       { uri: "spotify:track:BBBB", title: "   ", artist: "Artist", durationMs: null },
-      { uri: "spotify:track:CCCC", title: "Two", artist: "B", durationMs: 200000 },
+      { uri: "spotify:track:CCCC", title: "Two", artist: "B", durationMs: 200000, artworkUrl: null },
     ],
   };
 
@@ -27,8 +33,15 @@ describe("spotifyCandidates (P17)", () => {
       title: "Song",
       artist: "Artist",
       durationMs: 100000,
+      artworkUrl: "https://img/art",
     });
     expect(cands[1].mbid).toBe("spotify:track:CCCC");
+  });
+
+  it("P21: artwork flows through (null stays null for coverless rows)", () => {
+    const cands = spotifyCandidates(pl);
+    expect(cands[0].artworkUrl).toBe("https://img/art");
+    expect(cands[1].artworkUrl).toBeNull();
   });
 
   it("spotify picks get a stable non-itunes identity (D18 collision rule)", () => {

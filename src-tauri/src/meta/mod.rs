@@ -48,5 +48,8 @@ mod palette_tests;
 mod rate_limit_tests;
 #[cfg(test)]
 mod spotify_embed_tests;
+
+#[cfg(test)]
+mod spotify_art_tests;
 #[cfg(test)]
 mod stream_art_tests;

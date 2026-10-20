@@ -116,10 +116,20 @@ async fn fetch_full_playlist_end_to_end_against_fixture_server() {
                     let (name, artist) = if tid == T1 { ("Song One", "Artist A") } else { ("Song Two", "Artist B") };
                     wrapper(serde_json::json!({
                         "uri": format!("spotify:track:{tid}"), "name": name, "duration": 200000,
-                        "artists": [{ "name": artist }]
+                        "artists": [{ "name": artist }],
+                        "visualIdentity": { "image": [
+                            { "url": format!("https://img/{tid}/300"), "maxHeight": 300, "maxWidth": 300 },
+                            { "url": format!("https://img/{tid}/640"), "maxHeight": 640, "maxWidth": 640 }
+                        ] }
                     }))
                 },
             ),
+        )
+        .route(
+            "/oembed",
+            axum::routing::get(|| async {
+                r#"{"thumbnail_url":"https://img/oembed-art","width":456}"#
+            }),
         )
         .route(
             "/playlist/v2/playlist/{id}",
@@ -147,4 +157,9 @@ async fn fetch_full_playlist_end_to_end_against_fixture_server() {
     assert_eq!(out.tracks[1].title, "Song One");
     assert_eq!(out.tracks[2].title, "Song Two");
     assert_eq!(out.tracks[2].duration_ms, Some(200000));
+    // P21: playlist-page row art comes from the oEmbed fill pass; track-page
+    // rows carry visualIdentity directly (largest variant wins).
+    assert_eq!(out.tracks[0].artwork_url, Some("https://img/oembed-art".to_owned()));
+    assert_eq!(out.tracks[1].artwork_url, Some(format!("https://img/{T1}/640")));
+    assert_eq!(out.tracks[2].artwork_url, Some(format!("https://img/{T2}/640")));
 }
