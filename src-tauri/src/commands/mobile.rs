@@ -1,11 +1,13 @@
-//! P19.1 (D33): Android yt-dlp bridge skeleton. `resolve_android`
-//! proves the Rust → Kotlin plugin round-trip (registration, payload
-//! serde, response shape) before 19.2 ports resolve/batch to Kotlin.
+//! P19 (D33): Android yt-dlp bridge commands. `resolve_android_ping` is
+//! the 19.1 skeleton proof; `resolve_android` (19.2) runs the Kotlin
+//! search+score+format pipeline and returns the shared Candidate shape
+//! so the FE adapter (19.3) can route mobile resolves transparently.
 
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use crate::resolver::mobile::YtDlpMobile;
+use crate::resolver::Candidate;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -15,8 +17,19 @@ pub struct PingOut {
     pub error: Option<String>,
 }
 
+/// Kotlin `resolve` payload — mapped onto the shared Candidate below.
+#[cfg(target_os = "android")]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AndroidResolveOut {
+    url: String,
+    mime: Option<String>,
+    confidence: f32,
+    source: String,
+}
+
 #[tauri::command]
-pub async fn resolve_android(mobile: State<'_, YtDlpMobile>) -> Result<PingOut, String> {
+pub async fn resolve_android_ping(mobile: State<'_, YtDlpMobile>) -> Result<PingOut, String> {
     #[cfg(target_os = "android")]
     {
         mobile
@@ -28,6 +41,44 @@ pub async fn resolve_android(mobile: State<'_, YtDlpMobile>) -> Result<PingOut, 
     #[cfg(not(target_os = "android"))]
     {
         let _ = mobile;
-        Err("resolve_android is Android-only (desktop uses the Rust chain)".into())
+        Err("Android-only (desktop uses the Rust chain)".into())
+    }
+}
+
+#[tauri::command]
+pub async fn resolve_android(
+    mobile: State<'_, YtDlpMobile>,
+    artist: String,
+    title: String,
+    album: Option<String>,
+    duration_ms: Option<i64>,
+) -> Result<Candidate, String> {
+    #[cfg(target_os = "android")]
+    {
+        let out: AndroidResolveOut = mobile
+            .0
+            .run_mobile_plugin_async(
+                "resolve",
+                serde_json::json!({
+                    "artist": artist,
+                    "title": title,
+                    "album": album,
+                    "durationMs": duration_ms,
+                }),
+            )
+            .await
+            .map_err(|e| format!("ytdlp resolve: {e}"))?;
+        Ok(Candidate {
+            url_or_path: out.url,
+            mime: out.mime,
+            expires_at: None,
+            source: out.source,
+            confidence: out.confidence,
+        })
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (mobile, artist, title, album, duration_ms);
+        Err("Android-only (desktop uses the Rust chain)".into())
     }
 }
