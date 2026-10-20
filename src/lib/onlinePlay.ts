@@ -27,6 +27,19 @@ const specCache = new Map<string, Candidate>();
     the entry clears, so the next attempt starts fresh. */
 const inflight = new Map<string, Promise<Candidate | null>>();
 
+/** P20.2: raw chain resolve — no prime/inflight interplay, so a batch
+    flight's fallback leg calls it directly (re-entering `resolveOnlinePick`
+    there would await its own reserved entry = deadlock). */
+export async function runChain(pick: OnlinePick): Promise<Candidate | null> {
+  const candidate = await resolveQuery({
+    artist: pick.artist ?? "",
+    title: pick.title,
+    durationMs: pick.durationMs ?? null,
+  });
+  if (candidate) specCache.set(pickKey(pick), candidate);
+  return candidate;
+}
+
 /** Resolve through the chain, reusing a primed or in-flight result. */
 export async function resolveOnlinePick(pick: OnlinePick): Promise<Candidate | null> {
   const key = pickKey(pick);
@@ -40,15 +53,34 @@ export async function resolveOnlinePick(pick: OnlinePick): Promise<Candidate | n
     console.log(`[onlinePlay] awaiting in-flight ${key}`);
     return flying;
   }
-  const flight = (async (): Promise<Candidate | null> => {
-    const candidate = await resolveQuery({
-      artist: pick.artist ?? "",
-      title: pick.title,
-      durationMs: pick.durationMs ?? null,
-    });
-    if (candidate) specCache.set(key, candidate);
-    return candidate;
-  })().finally(() => {
+  const flight = runChain(pick).finally(() => {
+    inflight.delete(key);
+  });
+  inflight.set(key, flight);
+  return flight;
+}
+
+/** P20.2 batch-prefetch accessors (batchResolve.ts) — the chunk pump reads
+    the prime cache, skips covered keys and reserves each dispatched key as
+    an ordinary P9.9 flight so prime/play/add all await the batch leg. */
+export function getCachedCandidate(key: string): Candidate | null {
+  return specCache.get(key) ?? null;
+}
+
+export function cacheCandidate(key: string, candidate: Candidate): void {
+  specCache.set(key, candidate);
+}
+
+export function hasInflight(key: string): boolean {
+  return inflight.has(key);
+}
+
+/** Register an externally-built flight under the single-flight map. */
+export function reserveFlight(
+  key: string,
+  work: Promise<Candidate | null>,
+): Promise<Candidate | null> {
+  const flight = work.finally(() => {
     inflight.delete(key);
   });
   inflight.set(key, flight);

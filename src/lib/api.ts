@@ -1,8 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { EvictStats, LyricsPayload, SearchPage, Track } from "@/lib/types";
 
-/** True when running inside the Tauri webview (not plain vite/preview). */
-export const inTauri = "__TAURI_INTERNALS__" in window;
+/** True when running inside the Tauri webview (not plain vite/preview;
+    `typeof window` keeps node-side unit tests import-safe). */
+export const inTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 /** True on the Android WebView — desktop-only features (yt-dlp updater,
     native dialogs) are hidden there; online play is Piped-only (D19). */
