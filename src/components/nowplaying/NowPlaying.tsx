@@ -63,7 +63,7 @@ export function NowPlaying() {
     <div className="np" role="dialog" aria-label="Now playing">
       <button
         type="button"
-        className="np__close np__chrome"
+        className="np__close"
         aria-label="Close now playing"
         onClick={close}
       >
@@ -72,11 +72,11 @@ export function NowPlaying() {
       <div className="np__grid">
         <div className="np__hero">
           <HeroArt coverPath={track?.coverPath ?? null} />
-          <div className="np__meta np__chrome">
+          <div className="np__meta">
             <h2 className="np__title">{track?.title ?? "Nothing playing"}</h2>
             <p className="np__artist">{track?.artist ?? "—"}</p>
           </div>
-          <div className="np__transport np__chrome">
+          <div className="np__transport">
             <button
               type="button"
               aria-label="Shuffle"
@@ -132,7 +132,7 @@ export function NowPlaying() {
           {/* seek row: PlayerBar's slider sits under this overlay (worse on
               phones, whose .np background is 0.88 opaque) — show times here.
               Reuses player-bar__seek styles (incl. 44px mobile touch). */}
-          <div className="player-bar__seek np__chrome w-full max-w-96">
+          <div className="player-bar__seek w-full max-w-96">
             <span className="player-bar__time tabular">
               {formatDuration(seekPosition * 1000)}
             </span>
@@ -154,7 +154,7 @@ export function NowPlaying() {
           </div>
         </div>
 
-        <div className="np__side np__chrome">
+        <div className="np__side">
           <section className="np__panel">
             <h3 className="np__panel-title">Lyrics</h3>
             <LyricsPanel />

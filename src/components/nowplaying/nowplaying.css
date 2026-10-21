@@ -1,5 +1,5 @@
 /* P6.4 expanded Now Playing overlay: mostly transparent so the World
-   layer (aurora + visualizer) stays visible; ambient-idle lives here too. */
+   layer (aurora + visualizer) stays visible. (Ambient idle removed — D36.) */
 
 .np {
   position: fixed;
@@ -160,35 +160,3 @@
   background: color-mix(in oklab, var(--accent) 18%, transparent);
 }
 
-/* Ambient idle: chrome fades (500 ms in, 220 ms back), World scales up. */
-.np__chrome {
-  transition: opacity var(--dur-base) ease;
-}
-
-.ambient-idle .np__chrome {
-  opacity: 0;
-  transition-duration: var(--dur-slow);
-}
-
-.aurora,
-.viz {
-  transition: transform var(--dur-base) ease;
-}
-
-.ambient-idle .aurora,
-.ambient-idle .viz {
-  transform: scale(1.08);
-  transition-duration: var(--dur-slow);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .np__chrome,
-  .aurora,
-  .viz {
-    transition: none;
-  }
-  .ambient-idle .aurora,
-  .ambient-idle .viz {
-    transform: none;
-  }
-}

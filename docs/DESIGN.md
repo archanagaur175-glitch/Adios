@@ -75,8 +75,8 @@ Target 1280×800, minimum 900×600.
 - **Toast**: bottom-right, glass-strong, auto-dismiss.
 - **Skeleton**: shimmer sweep, used while resolving streams or fetching metadata.
 
-## 6. Ambient idle mode
-After 15 s without pointer/keyboard input while Now Playing is expanded: chrome (buttons, queue, lyrics text) fades to 0 opacity, Aurora + visualizer scale up ~8 % (screensaver feel). Any input restores instantly (220 ms).
+## 6. Ambient idle mode — REMOVED (D36, 2026-10-20)
+Was: after 15 s idle while Now Playing expanded, chrome faded to 0 and the World scaled ~8 %. Removed by user decision ("upon inactivity everything disappears — play controls, lyrics — only the album cover can be seen; I don't want that"). No idle class, no chrome fade, no idle scale.
 
 ## 7. Quality tiers & Eco
 | Tier | Bars | fps | Backdrop-filter | Aurora | Visualizer glow |

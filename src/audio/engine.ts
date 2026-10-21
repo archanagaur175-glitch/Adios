@@ -48,8 +48,18 @@ class PlayerEngine {
     usePlayerStore.subscribe((state, prev) => {
       if (state.currentTrackId !== prev.currentTrackId) {
         void this.loadCurrent();
-      } else if (state.isPlaying !== prev.isPlaying) {
-        this.applyPlaying(state.isPlaying);
+      } else {
+        if (state.isPlaying !== prev.isPlaying) this.applyPlaying(state.isPlaying);
+        // playQueue resets durationSec, but replaying the SAME track never
+        // fires loadedmetadata again — re-sync from the element or 0:00 (and
+        // a disabled seek bar) sticks until the next track change.
+        if (state.playEpoch !== prev.playEpoch) {
+          const el = this.currentEl();
+          const dur = el ? el.duration : 0;
+          if (Number.isFinite(dur) && dur > 0) {
+            usePlayerStore.getState().setDuration(dur);
+          }
+        }
       }
       if (state.volume !== prev.volume || state.muted !== prev.muted) {
         setMasterVolume(state.volume, state.muted);

@@ -7,6 +7,9 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  /* the active line's scale(1.06) (left origin) overflows ~19px sideways —
+     clip it, else a horizontal scrollbar sits inside the lyrics box */
+  overflow-x: hidden;
   overscroll-behavior: contain;
 }
 

@@ -30,14 +30,13 @@ export function LyricsLines({ lines, activeIndex, onSeek, className }: Props) {
     if (max <= 0) return;
     // Rect math: el.offsetTop is measured against the nearest positioned
     // ancestor (the fixed .np), NOT this container — computing from rects
-    // keeps centering correct wherever .ly lives (panel, immersive, phone).
+    // keeps the top-align correct wherever .ly lives (panel, immersive, phone).
     const cRect = container.getBoundingClientRect();
     const eRect = el.getBoundingClientRect();
     const elTop = eRect.top - cRect.top + container.scrollTop;
-    const to = Math.max(
-      0,
-      Math.min(max, elTop - (container.clientHeight - eRect.height) / 2),
-    );
+    // Top-align (user decision 2026-10-20): pin the active line to the top
+    // of the box so it is visible by default, upcoming lines read below it.
+    const to = Math.max(0, Math.min(max, elTop));
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       container.scrollTop = to;
       return;

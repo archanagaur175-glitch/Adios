@@ -14,7 +14,6 @@ import { initYtdlpPathSync } from "@/lib/ytdlpSync";
 import { useLibraryStore } from "@/store/libraryStore";
 import { initBandsBridge } from "@/visuals/audioBandsBridge";
 import { initBatterySuggest } from "@/visuals/batterySuggest";
-import { initAmbientIdle } from "@/visuals/idle";
 import { initPaletteWiring } from "@/visuals/palette";
 import { AppShell } from "@/routes/AppShell";
 import HomePage from "@/routes/Home";
@@ -36,8 +35,6 @@ function App() {
     const stopPalette = initPaletteWiring();
     // P6.3: one-time Eco suggestion when the battery drops below 20%.
     const stopBattery = initBatterySuggest();
-    // P6.4: ambient idle while Now Playing is expanded (DESIGN §6).
-    const stopIdle = initAmbientIdle();
     // P8.3: persist queue/position/volume; restore paused after the library.
     const detachPersist = attachSessionPersist();
     // P9.4 (OQ2): keep ytdlpPath fresh even if Settings unmounts mid-update.
@@ -60,7 +57,6 @@ function App() {
       stopBands();
       stopPalette();
       stopBattery();
-      stopIdle();
     };
   }, []);
 
