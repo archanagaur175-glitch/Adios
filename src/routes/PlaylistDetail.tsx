@@ -87,7 +87,9 @@ export default function PlaylistDetailPage() {
 
   return (
     <section className="page flex h-full flex-col gap-4" data-testid="playlist-detail">
-      <header className="flex items-center justify-between gap-3">
+      {/* wrap: on phones the 6-button action row + name can't fit one line
+          (was horizontal-overflow scroll on shell__main) */}
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <input
             type="text"

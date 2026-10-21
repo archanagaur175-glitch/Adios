@@ -27,8 +27,17 @@ export function LyricsLines({ lines, activeIndex, onSeek, className }: Props) {
     const el = activeRef.current;
     if (!container || !el || activeIndex < 0) return;
     const max = container.scrollHeight - container.clientHeight;
-    const target = el.offsetTop - (container.clientHeight - el.offsetHeight) / 2;
-    const to = Math.max(0, Math.min(max, target));
+    if (max <= 0) return;
+    // Rect math: el.offsetTop is measured against the nearest positioned
+    // ancestor (the fixed .np), NOT this container — computing from rects
+    // keeps centering correct wherever .ly lives (panel, immersive, phone).
+    const cRect = container.getBoundingClientRect();
+    const eRect = el.getBoundingClientRect();
+    const elTop = eRect.top - cRect.top + container.scrollTop;
+    const to = Math.max(
+      0,
+      Math.min(max, elTop - (container.clientHeight - eRect.height) / 2),
+    );
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       container.scrollTop = to;
       return;

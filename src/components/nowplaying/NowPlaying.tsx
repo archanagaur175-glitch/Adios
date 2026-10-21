@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { formatDuration } from "@/lib/format";
 import { useLibraryStore } from "@/store/libraryStore";
 import { usePlayerStore } from "@/store/playerStore";
 import { useUiStore } from "@/store/uiStore";
@@ -30,6 +31,9 @@ export function NowPlaying() {
   const queueIndex = usePlayerStore((s) => s.queueIndex);
   const shuffle = usePlayerStore((s) => s.shuffle);
   const repeatMode = usePlayerStore((s) => s.repeatMode);
+  const positionSec = usePlayerStore((s) => s.positionSec);
+  const durationSec = usePlayerStore((s) => s.durationSec);
+  const seekPosition = Math.min(positionSec, durationSec || positionSec);
   const repeatLabel: Record<RepeatMode, string> = {
     off: "Repeat off",
     queue: "Repeat queue",
@@ -124,6 +128,29 @@ export function NowPlaying() {
               {repeatMode === "track" ? <IconRepeatOne /> : <IconRepeat />}
             </button>
             <AddToPlaylistButton />
+          </div>
+          {/* seek row: PlayerBar's slider sits under this overlay (worse on
+              phones, whose .np background is 0.88 opaque) — show times here.
+              Reuses player-bar__seek styles (incl. 44px mobile touch). */}
+          <div className="player-bar__seek np__chrome w-full max-w-96">
+            <span className="player-bar__time tabular">
+              {formatDuration(seekPosition * 1000)}
+            </span>
+            <input
+              type="range"
+              aria-label="Seek"
+              min={0}
+              max={durationSec > 0 ? durationSec : 0}
+              step={0.1}
+              value={seekPosition}
+              disabled={durationSec <= 0}
+              onChange={(e) =>
+                usePlayerStore.getState().seekTo(Number(e.target.value))
+              }
+            />
+            <span className="player-bar__time tabular">
+              {formatDuration(durationSec * 1000)}
+            </span>
           </div>
         </div>
 

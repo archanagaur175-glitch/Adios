@@ -48,4 +48,11 @@
   .np__queue {
     overflow: visible;
   }
+
+  /* Mobile .np is the scroller, so .ly never got a bounded height →
+     scrollHeight===clientHeight and the autoscroll effect no-oped.
+     Bound it so the lyrics box scrolls internally (auto-follows). */
+  .np .ly {
+    max-height: 45vh;
+  }
 }
